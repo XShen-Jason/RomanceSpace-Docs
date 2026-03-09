@@ -242,29 +242,36 @@
 
     <h2>四、 上传部署到线上</h2>
 
-    <p>模板支持两种上传方式，看你处于哪个阶段：</p>
+    <p>自系统重构后，所有的模板现在统一存放在专属的 <strong>RomanceSpace-Templates</strong> 仓库中。上传模板最推荐、最稳妥的方式是直接利用 GitHub 的自动化流水线（CI/CD）。</p>
 
-    <h3>方式 1：本地快速上传（供前端本地调试用）</h3>
-    <p>写好模板，在本机浏览器测试看看一切 OK 后，只需要**一行代码**，连编译都不用，直接送上云端。</p>
-    <pre><code># 第1步：切入后台文件夹
-cd C:\Users\xxx\Desktop\Romance\romancespace
+    <h3>方式 1：通过 GitHub Actions 自动部署（强烈推荐）</h3>
+    <p>只要你的 <code>RomanceSpace-Templates</code> 仓库已经在 GitHub 上配置好了 <code>RS_ADMIN_KEY</code> 密钥，你只需要正常提交代码：</p>
+    <pre><code># 1. 提交你新写好的、或修改过的模板文件夹
+git add src/my_card/
+git commit -m "feat: add my_card template"
 
-# 第2步：告诉终端你的密钥密码 (每次关闭窗口可能需要重敲)
-$env:RS_ADMIN_KEY="你的超强密钥123"
+# 2. 推送到 Github
+git push</code></pre>
+    <p>就是这么简单！GitHub Actions 会自动检测你改动了哪个模板，并直接调 API 帮你上传到 Cloudflare 处理好一切。</p>
+
+    <h3>方式 2：本地命令行上传（仅供本地极客调试用）</h3>
+    <p>如果你在本地开发，想立刻强行塞进云端看效果，也可以呼叫仓库里自带的上传脚本：</p>
+    <pre><code># 第1步：切入 Templates 仓库根目录
+cd C:\Users\xxx\...\RomanceSpace-Templates
+
+# 第2步：在根目录建一个 .env 文件，写上密钥
+# 编辑 .env 文件写入：RS_ADMIN_KEY="你的超强密钥"
 
 # 第3步：执行上传！语法为 npm run upload 模板名 本地路径
-npm run upload my_card ./templates/my_card</code></pre>
+npm run upload my_card ./src/my_card</code></pre>
 
-    <h3>方式 2：使用主平台接入上传（推荐长期使用）</h3>
-    <p>如果你正在开发一个 CMS 管理后台，想让站长在网页上打包上传模板（而不碰命令行），你可以直接调用边缘节点的 <strong>文件直传
-            API</strong>。请移步左侧菜单栏里的<strong>《开通与修改用户网页》</strong>文档（见<strong>第二大节: 上传模板 API</strong>）。</p>
+    <h2>五、 如果我想更新已有的模板怎么办？</h2>
 
-
-    <h2>五、 如果我想更新模板怎么办？</h2>
-
-    <p>修复了 <code>style.css</code> 的一个样式 bug？直接重复执行上面的上传动作即可（调用 API 或命令行均可）。</p>
-    <p>系统非常聪明，当它发现你是二次覆盖更新时，它不仅会更新静态资源文件，还会<strong>在后台把之前所有用过这个模板的几百个、几千个用户的个人专属旧网页，一口气顺带连锅端掉全帮你重新生成一次新版本。</strong>整个过程平滑，并且访客不会遇到任何
-        404。</p>
+    <p>比如你修复了 <code>my_card</code> 里 <code>style.css</code> 的一个样式 bug。你只需要：</p>
+    <p><strong>像平时一样 <code>git push</code> 更新的代码即可。</strong></p>
+    <p>系统极其聪明，当它发现你是覆盖更新时，它不仅会悄悄换掉静态资源文件，还会<strong>在后台把之前所有用过这个模板的几百个用户个人的专属旧网页，一口气顺带连锅端掉、全帮你重新生成一次新版的静态文件存入仓库。</strong>
+    </p>
+    <p>整个过程极其平滑，哪怕此时正好有几万访客在看旧页面，他们所看到的依然是旧版快照，等几秒钟后刷新，就会无缝切到你的新版，中间绝对不会出现任何打断或 404。</p>
 
     <script>
         // 注入“复制”按钮

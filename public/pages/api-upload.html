@@ -177,13 +177,32 @@
 
     <h1>🚀 开发者上传模板接口</h1>
 
-    <p>如果您希望在自己的主站后台搭建一套 <strong>“可视化模板上传面板”</strong>，可以通过调用此接口，将包含 <code>HTML/CSS/JS/图片</code> 等模板文件直传至 Cloudflare
-        边缘节点。</p>
+    <div
+        style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px 20px; margin-bottom: 25px; border-radius: 4px;">
+        <strong>💡 架构提示：</strong>
+        <p style="margin: 5px 0 0 0; font-size: 14px; color: #1e3a8a;">
+            目前系统内置的 <code>RomanceSpace-Templates</code> 仓库内部的 <strong>GitHub Actions 自动部署流水线</strong>，正是调用此 API
+            完成模板上传的。<br>
+            如果您希望在自己的主站后台搭建一套 <strong>“可视化模板上传面板”</strong>，可以通过让您的主站后端携带鉴权密钥调用此接口，将包含 <code>HTML/CSS/JS/图片</code>
+            等模板文件直传至 Cloudflare 边缘节点。
+        </p>
+    </div>
+
     <p>一旦上传成功，新版模板立刻生效，系统还会在后台平滑滚动更新所有使用过此模板的老用户专属网页。</p>
 
     <hr style="border: 0; border-top: 1px solid #eee; margin: 40px 0;">
 
     <h2>接口详情 ⚙️</h2>
+
+    <div
+        style="background: #fdfae6; border-left: 4px solid #f59e0b; padding: 15px 20px; margin-bottom: 25px; border-radius: 4px;">
+        <strong>🔐 安全防线：</strong>
+        <p style="margin: 5px 0 0 0; font-size: 14px; color: #78350f;">
+            本系统通过 <code>X-Admin-Key</code> 请求头进行强制鉴权。没有该密钥，任何人均无法非法覆盖或上传模板代码。<br>
+            <strong>强烈建议：</strong>未来您的主平台（Platform）开发完毕后，必须由您的<strong>后端服务器</strong>携带该密钥来发起调用，<strong>绝不可在前端游览器 AJAX
+                请求中直接暴露此密钥</strong>。
+        </p>
+    </div>
 
     <div class="endpoint">
         <div class="endpoint-url">

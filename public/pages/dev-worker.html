@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Worker 边缘网关开发手册</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+        }
+
+        h1 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+        }
+
+        pre code {
+            color: inherit;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            margin: 20px 0;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            margin: 20px 0;
+            color: #065f46;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🌐 Worker 边缘网关开发手册 (读引擎分发)</h1>
+    <p>RomanceSpace-Worker 主要角色是一个 <code>fetch</code> 监听器，作为基于 Cloudflare Edge 的纯天然 CDN 层。它没有任何状态，且被严禁参与渲染和对象拼接写入。</p>
+
+    <h2>一、为什么它是只读的？</h2>
+    <p>在早期的系统版本中，Worker 身兼两职：既要读请求生成页面，又要写 R2。这种耦合导致流量突增时，极其依赖 Worker 本身的 10ms/50ms CPU 时间配额。在 CQRS 彻底解耦后，Worker
+        恢复了它最强大的特性：<strong>无延迟转发与静态拦截。</strong></p>
+
+    <h2>二、核心源码流程解析 (src/index.js)</h2>
+
+    <h3>1. 域名分发器 (Host Matching)</h3>
+    <pre><code>
+const url = new URL(request.url);
+const hostname = url.hostname;
+
+// 若为根域名 (如 romance.com)
+if (isMainDomain(hostname)) {
+    // 【拦截器】主域名的纯净跳转
+    return Response.redirect(`https://www.885201314.xyz${url.pathname}`, 301);
+}
+// 若为泛域名 (如 xiaoming.romance.com)
+return handleSubdomainRequest(request, subdomain, env, ctx);
+    </code></pre>
+    <p>这里的关键逻辑是拦截一切野生访问（比如错误拼写），全部强行纠正到 <code>www.885201314.xyz</code> （Frontend 主应用所在的 Cloudflare Pages 服务器）。</p>
+
+    <h3>2. 三级缓存分发机制（抗住了 100% 高并发的秘密）</h3>
+    <p>当一个合法的 <code>xiaoming.885201314.xyz</code> 请求进来时，它的获取路径是这三层，依次递进：</p>
+
+    <div class="success">
+        <strong>第 1 级缓存：Cache API (免费橱窗)</strong><br>
+        <code>const cache = caches.default;</code><br>
+        每次拿到结果后，都会在此调用 <code>cache.put(cacheKey, response.clone())</code> 进行缓存。如果这一层（Cloudflare Edge 本地缓存）命中了，Worker
+        根本不往下走，0ms 极飞。
+    </div>
+
+    <div class="success">
+        <strong>第 2 级鉴权：KV Lookup (小本子挂号)</strong><br>
+        <code>const projectConfigStr = await env.ROMANCESPACE_KV.get(subdomain);</code><br>
+        只有当 1 级大门没有，Worker 才会向 KV 花费极小的成本询价。如果发现字典里没有这个人，直接退回（404）。
+    </div>
+
+    <div class="success">
+        <strong>第 3 级提货：R2 Bucket (永久冷库读取)</strong><br>
+        <code>const pageObj = await env.RS_BUCKET.get(`pages/${subdomain}.html`);</code><br>
+        确认有这人、但还没缓存，它才会进入重资产的 R2 存储读取 HTML 死块代码。读取出来后，立马存进第 1 级的 Cache 里，然后下发给用户。
+    </div>
+
+    <h2>三、病毒式引流注射 (Viral Footer)</h2>
+    <p>Worker 最精妙的设计之一：<code>injectViralFooter(htmlContent)</code>。</p>
+    <ul>
+        <li>为了最大化社交裂变属性，我们不希望“每次渲染时在 Backend 写死一个引流广告”，因为这会导致未来如果我们想换广告链接，就要重新渲染全部静态 R2。</li>
+        <li>所以，Backend 给出来的 HTML 底层永远是干净的。</li>
+        <li><strong>Worker 在拿到 R2 的那串纯净 HTML
+                时</strong>，以正则追加一行动态计算出的超链接：<code>&lt;a href="https://www.885201314.xyz?utm_source=xiaoming..."&gt;一键为您制作同款&lt;/a&gt;</code>。
+        </li>
+        <li>这实现了业务灵活度（Worker 里随时改推广连接）与文件干净度（R2 保持绝对纯粹）的完美平衡。</li>
+    </ul>
+
+</body>
+
+</html>

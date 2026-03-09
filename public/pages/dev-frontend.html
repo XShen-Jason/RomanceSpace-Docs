@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Frontend 前端界面开发手册</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+        }
+
+        h1 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+        }
+
+        pre code {
+            color: inherit;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🎨 Frontend 前端界面开发手册</h1>
+    <p>RomanceSpace-Frontend 是一个纯粹的 UI 层 (Single Page Application)。它没有任何状态留存，所有业务逻辑全部通过调用 Backend API
+        完成。我们的核心法则是：<strong>前端只负责渲染和收集表单。</strong></p>
+
+    <h2>一、目录解剖与核心挂载</h2>
+    <p>前端基于 React (Vite) 搭建，移除了传统 SPA 的复杂状态管理（如 Redux），仅使用 React Hooks 进行组件内状态流转。</p>
+    <pre>
+src/
+├── api/
+│   └── client.js        // 唯一与Backend通信的接口层
+├── components/          // (可复用UI组件)
+├── pages/               // 路由页面层
+│   ├── Home.jsx         // 官网主页
+│   ├── Gallery.jsx      // 模板画廊层 (GET API展示)
+│   └── Builder.jsx      // 开通制作层 (POST API提交)
+├── App.jsx              // 核心路由挂载
+└── main.jsx             // React 根节点
+    </pre>
+
+    <h2>二、核心组件与数据流</h2>
+
+    <h3>1. App.jsx (路由网关)</h3>
+    <p>使用 <code>react-router-dom</code> 规范页面跳转，保证 URL 体验。</p>
+
+    <h3>2. Gallery.jsx (模板画廊)</h3>
+    <p><strong>作用：</strong>呈现所有已上架的模板。它是用户的主入口。</p>
+    <ul>
+        <li>生命周期初始化时，调用 <code>api/client.js</code> 的 <code>getTemplates()</code>。</li>
+        <li>底层发起 <code>GET /api/template/list</code> 请求到 Backend VPS。</li>
+        <li>Backend 返回可用模板的 JSON 数组（含 name、version、配置字段）。</li>
+        <li>将 JSON 映射成一个个直观的卡片。</li>
+    </ul>
+
+    <h3>3. Builder.jsx (开通表单构建器) - 核心核心</h3>
+    <p><strong>作用：</strong>收集用户要开通的域名和动态参数（如姓名、相识天数），并呼叫 Backend 进行“熔铸”。</p>
+    <p><strong>流程解析：</strong></p>
+    <ol>
+        <li>从 URL 或状态中接收上一步 Gallery 传来的模板 <code>type</code> (如 `commemoration`)。</li>
+        <li>利用 React useState 双向绑定表单：
+            <ul>
+                <li><code>subdomain</code>: 用户想要的域名前缀。</li>
+                <li><code>formData</code>: 一个深度对象，对应模板 schema 要求的所有自定义字段。</li>
+            </ul>
+        </li>
+        <li>点击提交，触发 <code>renderProject()</code>，开始向 Backend 发送开通指令。在收到 200 SUCCESS 之前，处于 Loading 锁死状态。</li>
+    </ol>
+
+    <h2>三、api/client.js (网关代理)</h2>
+    <p>所有需要和 Backend 说话的代码，全部封装在这个文件里。绝不允许在组件里直接 fetch。</p>
+    <pre><code>
+// 核心开通函数：向 Backend 发送熔铸请求
+export const renderProject = async (data) => {
+    /*
+      data 结构:
+      {
+        subdomain: 'xiaoming',
+        templateType: 'commemoration',
+        data: {
+            boyName: 'Jack',
+            girlName: 'Rose'
+        }
+      }
+    */
+    const response = await fetch(`${API_BASE_URL}/api/project/render`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return response.json(); 
+};
+    </code></pre>
+    <div class="note">
+        <strong>环境变量：</strong> 前端需要知道 Backend 的地址，因此需要在 <code>.env</code> 文件中配置
+        <code>VITE_API_BASE_URL=https://api.885201314.xyz</code> 才能正常运行。
+    </div>
+
+</body>
+
+</html>

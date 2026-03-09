@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>平台全局数据流转分析 (Data Flow)</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+        }
+
+        h1 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
+        }
+
+        h3 {
+            margin-top: 30px;
+            color: #0284c7;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+        }
+
+        pre code {
+            color: inherit;
+        }
+
+        .box {
+            border: 1px dashed #cbd5e1;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .arrow {
+            text-align: center;
+            color: #64748b;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📊 平台全局数据流转分析 (Data Flow)</h1>
+    <p>这个章节将从全栈的角度，以上帝视角解剖一个名为 <strong>"xiaoming"</strong> 的表单是如何贯穿 Frontend -> Backend -> R2/KV -> Worker -> 物理浏览器的。
+    </p>
+
+    <h2>一、 数据的起跑（Frontend -> JSON）</h2>
+    <div class="box">
+        <h3>📍 React Builder.jsx</h3>
+        <p>用户选择了名为 <code>classic_love</code> 的模板。提交了如下原生对象状态：</p>
+        <pre><code class="language-json">
+{
+  "subdomain": "xiaoming",
+  "templateType": "classic_love",
+  "data": {
+    "me": "小明",
+    "you": "小红",
+    "startDate": "2024-01-01"
+  }
+}
+        </code></pre>
+    </div>
+
+    <div class="arrow">⬇ 跨海传输 (HTTPS POST /api/project/render)</div>
+
+    <h2>二、 数据的熔铸（Backend -> HTML注入）</h2>
+    <div class="box">
+        <h3>📍 Express /routes/project.js</h3>
+        <p>Node.js 通过提取模板，获得了 R2 里的 <code>index.html</code> 字符串：</p>
+        <pre><code class="language-html">
+&lt;h1&gt;{{me}} 爱 {{you}}&lt;/h1&gt;
+&lt;p&gt;我们在一起相爱了 {{_calcDays(startDate)}} 天&lt;/p&gt;
+        </code></pre>
+        <p>Backend 的内部算法引擎高速正则替换，生成了最终字符串结果：</p>
+        <pre><code class="language-html">
+&lt;h1&gt;小明 爱 小红&lt;/h1&gt;
+&lt;p&gt;我们在一起相爱了 99 天&lt;/p&gt;
+        </code></pre>
+    </div>
+
+    <div class="arrow">⬇ 资产沉淀 (S3 API & REST API)</div>
+
+    <h2>三、 数据的封印（R2 & KV & Supabase）</h2>
+    <div class="box">
+        <h3>📍 数据库持久层写入</h3>
+        <ul>
+            <li><strong>【R2 对象存储】</strong>生成 <code>/pages/xiaoming.html</code>，它的内容就是上面组装好的“死块”HTML。</li>
+            <li><strong>【KV 键值系统】</strong>存入键 <code>"xiaoming"</code>，值为
+                <code>{"template":"classic_love", "version":1}</code>。这是为了以后读取时的快照检查。</li>
+            <li><strong>【Supabase 数据库】</strong>在 PostgreSQL 表 <code>projects</code> 增加一行记录，原始 JSON
+                原封不动沉底，方便以后“后台二次编辑”能把数据反选出来。</li>
+        </ul>
+    </div>
+
+    <div class="arrow">⬇ 数千万人访问 (DNS Wildcard)</div>
+
+    <h2>四、 数据的喷发（Worker -> Cache -> 浏览器）</h2>
+    <div class="box">
+        <h3>📍 Cloudflare Edge 读取流</h3>
+        <p>用户访问 <code>https://xiaoming.885201314.xyz</code>：</p>
+        <ol>
+            <li>Cloudflare CDN (一级缓存) 完全失效或未设置。</li>
+            <li>Worker 脚本文本激活，看到 Request 请求中 Hostname 是 <code>xiaoming</code>。</li>
+            <li>它立即 <code>await KV.get('xiaoming')</code>。获得配置（鉴权通过）。</li>
+            <li>前往 R2 拿到早就渲染好的、一锤定音的 HTML，加上 <code>Cache-Control: public, max-age=3600</code>，并注入拉新尾部链接。</li>
+            <li>直接抛回给浏览器客户端，同时让全地球这个节点的 CF 代理商将这段响应内存挂起（1 小时内有效）。</li>
+        </ol>
+    </div>
+
+</body>
+
+</html>

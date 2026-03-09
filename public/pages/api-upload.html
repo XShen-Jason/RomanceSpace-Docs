@@ -207,7 +207,7 @@
     <div class="endpoint">
         <div class="endpoint-url">
             <span class="method">POST</span>
-            <span class="url-text">https://romancespace.885201314.xyz/admin/upload-template</span>
+            <span class="url-text">https://api.885201314.xyz/api/template/upload</span>
         </div>
         <button class="copy-btn copy-url">复制链接</button>
     </div>
@@ -237,7 +237,7 @@
 
     <div id="curl2" class="tab-content active">
         <pre><code># 这个命令展示了如何同时传文本名，加上2个文件
-curl -X POST https://romancespace.885201314.xyz/admin/upload-template \
+curl -X POST https://api.885201314.xyz/api/template/upload \
   -H "X-Admin-Key: 你的超强密钥" \
   -F "templateName=love_letter" \
   -F "index.html=@./templates/love_letter/index.html" \
@@ -254,7 +254,7 @@ formData.append("index.html", fs.createReadStream("./templates/love_letter/index
 formData.append("style.css", fs.createReadStream("./templates/love_letter/style.css"));
 formData.append("schema.json", fs.createReadStream("./templates/love_letter/schema.json"));
 
-const response = await fetch("https://romancespace.885201314.xyz/admin/upload-template", {
+const response = await fetch("https://api.885201314.xyz/api/template/upload", {
   method: "POST",
   headers: {
     "X-Admin-Key": "你的超强密钥"

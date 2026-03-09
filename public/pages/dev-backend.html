@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Backend 服务端开发手册</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+        }
+
+        h1 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+        }
+
+        pre code {
+            color: inherit;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            margin: 20px 0;
+        }
+
+        .danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            margin: 20px 0;
+            color: #991b1b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>⚙️ Backend 服务端开发手册 (写算力核心)</h1>
+    <p>RomanceSpace-Backend 是运行在独立 VPS 上的 Node.js (Express) 进程。在 CQRS 架构中，它是绝对权威的<strong>“控制平面”与“写入引擎”</strong>。</p>
+
+    <h2>一、为什么不放在 Cloudflare Worker？</h2>
+    <p>传统的 Serverless (如 Worker) 对 CPU 毫秒级限制极度严苛。模板的渲染（把几千行 HTML 取出来、执行正则扫描替换、最后重新塞回大型对象存储）是一个极其昂贵的 I/O 和 CPU 操作。如果放在
+        Worker，高并发下会导致大规模请求超时死锁。</p>
+    <p>因此，Backend (VPS 后端) 包揽了这件重度脑力活，将组装好的死块直接推走。</p>
+
+    <h2>二、核心文件目录</h2>
+    <pre>
+src/
+├── app.js               // Express 实例入口、跨域层
+├── routes/              
+│   ├── project.js       // 用户开通网页核心 API
+│   └── template.js      // 模板上传与列出 API
+├── utils/
+│   ├── cf.js            // Cloudflare API(R2/KV/Cache) 打交道的底层库
+│   ├── html.js          // HTML 字符串注入工具 (最繁重的渲染引擎)
+│   └── supabase.js      // 数据库持久化连接
+    </pre>
+
+    <h2>三、核心源码流程：POST /api/project/render</h2>
+    <p>这是整个平台被调用最频繁、最重要的接口。当前端呼叫此接口时，Backend 开始它的工作：</p>
+    <ol>
+        <li><strong>鉴权与限流：</strong> 检查基础权限和限流墙（防 DDOS）。</li>
+        <li><strong>拉取母板：</strong> 根据传入的 <code>templateType</code> 参数，通过 <code>cf.js</code> 从 R2 提取出原汁原味的、带有
+            <code>{{双大括号}}</code> 的原始 <code>index.html</code> 和 <code>schema.json</code>。</li>
+        <li><strong>极速熔铸 (html.js)：</strong>
+            <ul>
+                <li>遍历前端传来的 <code>data</code>，利用正则在 <code>index.html</code> 字符串中进行精准锚点替换（String Replace）。</li>
+                <li>执行基础的安全转义，防止前端发来的字符串包含 XSS 恶意脚本。</li>
+            </ul>
+        </li>
+        <li><strong>推入仓库 (Push to R2)：</strong> 生成专属此人的一张新的 HTML (如 <code>pages/xiaoming.html</code>)，通过 R2 REST API
+            硬写入对象存储。</li>
+        <li><strong>路由挂载 (Push to KV)：</strong> 为了让 Worker 认识小明，后端向 Cloudflare KV 写入键值对
+            <code>{'xiaoming': '...' }</code>，相当于挂号登记。</li>
+        <li><strong>持久化沉淀 (Supabase)：</strong> 防止 R2 数据丢失，将这一条购买和开通记录（包含填写的 raw JSON 参数）通过 <code>supabase.js</code> 用
+            <code>jsonb</code> 格式永久落库。</li>
+        <li><strong>缓存失效 (Purge Cache)：</strong> 这是一个老客户的“更新”操作时，调用 CF Cache API 将全球所有边缘节点的
+            <code>xiaoming.885201314.xyz</code> 瞬间清理，强制下次拉新。</li>
+    </ol>
+
+    <h2>四、工具底层 (utils/cf.js)</h2>
+    <p>后端之所以能控制全球的 Cloudflare 节点，是因为它握有超级权力（<code>CF_API_TOKEN</code> 等配置）。</p>
+    <pre><code>
+// utils/cf.js 伪代码示例
+export const putToR2 = async (key, buffer) => {
+    // 采用 AWS S3 SDK 规范来连接 Cloudflare R2
+    const client = new S3Client({
+        region: 'auto',
+        endpoint: process.env.R2_ENDPOINT,
+        credentials: { ... }
+    });
+    // 硬性并发推送
+    await client.send(new PutObjectCommand({ Bucket, Key: key, Body: buffer }));
+}
+    </code></pre>
+
+    <div class="danger">
+        <strong>⚠️ 绝对隔离：</strong> Frontend 乃至主站，绝对不允许直接接触这些包含 R2 Key, KV ID 的代码。一切强写入行为只能通过 Backend 提供的 HTTPS REST API
+        执行。
+    </div>
+
+</body>
+
+</html>

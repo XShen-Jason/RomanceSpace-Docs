@@ -199,14 +199,13 @@
     <div class="endpoint">
         <div class="endpoint-url">
             <span class="method">POST</span>
-            <span class="url-text">https://romancespace.885201314.xyz/admin/render-page</span>
+            <span class="url-text">https://api.885201314.xyz/api/project/render</span>
         </div>
         <button class="copy-btn copy-url">复制链接</button>
     </div>
 
     <h3>Headers (必填)</h3>
     <ul>
-        <li><code>X-Admin-Key</code>: 你的平台通讯安全密钥</li>
         <li><code>Content-Type</code>: <code>application/json</code></li>
     </ul>
 
@@ -245,15 +244,15 @@
     <h2>场景一：启用域名 (仅绑定，不传入具体数据)</h2>
     <p>用户首次开通，此时还未填写任何表白/纪念内容的场景。我们希望生成一个带有“默认占位文字”的网页。</p>
     <p><strong>传参方式</strong>：<code>data</code> 参数传 <code>{}</code> 即可，系统会自动使用模板 <code>schema.json</code> 中预设的
-        <code>default</code> 默认值进行渲染。</p>
+        <code>default</code> 默认值进行渲染。
+    </p>
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('scene1-curl', this)">cURL</div>
         <div class="tab" onclick="switchTab('scene1-fetch', this)">Fetch</div>
     </div>
     <div id="scene1-curl" class="tab-content active">
-        <pre><code>curl -X POST https://romancespace.885201314.xyz/admin/render-page \
-  -H "X-Admin-Key: 你的超强安全密钥" \
+        <pre><code>curl -X POST https://api.885201314.xyz/api/project/render \
   -H "Content-Type: application/json" \
   -d '{
     "subdomain": "xiaoming",
@@ -262,9 +261,9 @@
   }'</code></pre>
     </div>
     <div id="scene1-fetch" class="tab-content">
-        <pre><code>const response = await fetch("https://romancespace.885201314.xyz/admin/render-page", {
+        <pre><code>const response = await fetch("https://api.885201314.xyz/api/project/render", {
   method: "POST",
-  headers: { "X-Admin-Key": "你的超强安全密钥", "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     subdomain: "xiaoming",
     type: "anniversary",
@@ -283,8 +282,7 @@
         <div class="tab" onclick="switchTab('scene2-fetch', this)">Fetch</div>
     </div>
     <div id="scene2-curl" class="tab-content active">
-        <pre><code>curl -X POST https://romancespace.885201314.xyz/admin/render-page \
-  -H "X-Admin-Key: 你的超强安全密钥" \
+        <pre><code>curl -X POST https://api.885201314.xyz/api/project/render \
   -H "Content-Type: application/json" \
   -d '{
     "subdomain": "xiaoming",
@@ -296,9 +294,9 @@
   }'</code></pre>
     </div>
     <div id="scene2-fetch" class="tab-content">
-        <pre><code>const response = await fetch("https://romancespace.885201314.xyz/admin/render-page", {
+        <pre><code>const response = await fetch("https://api.885201314.xyz/api/project/render", {
   method: "POST",
-  headers: { "X-Admin-Key": "你的超强安全密钥", "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     subdomain: "xiaoming",
     type: "anniversary",
@@ -311,15 +309,15 @@
     <h2>场景三：后续修改域名下的模板资料 </h2>
     <p>小明在使用 <code>anniversary</code> 模板期间，希望把 <code>startDate</code> 可以修改成 <code>2024-02-14</code>，或者更换另一个全新的模板。</p>
     <p><strong>传参方式</strong>：依然是调用本接口，无论是更换 <code>type</code> 还是单纯更换
-        <code>data</code>，系统都会在后台自动冲刷掉旧页面，重新生成静态网页，并秒速清理全球缓存。</p>
+        <code>data</code>，系统都会在后台自动冲刷掉旧页面，重新生成静态网页，并秒速清理全球缓存。
+    </p>
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('scene3-curl', this)">cURL</div>
         <div class="tab" onclick="switchTab('scene3-fetch', this)">Fetch</div>
     </div>
     <div id="scene3-curl" class="tab-content active">
-        <pre><code>curl -X POST https://romancespace.885201314.xyz/admin/render-page \
-  -H "X-Admin-Key: 你的超强安全密钥" \
+        <pre><code>curl -X POST https://api.885201314.xyz/api/project/render \
   -H "Content-Type: application/json" \
   -d '{
     "subdomain": "xiaoming",
@@ -331,9 +329,9 @@
   }'</code></pre>
     </div>
     <div id="scene3-fetch" class="tab-content">
-        <pre><code>const response = await fetch("https://romancespace.885201314.xyz/admin/render-page", {
+        <pre><code>const response = await fetch("https://api.885201314.xyz/api/project/render", {
   method: "POST",
-  headers: { "X-Admin-Key": "你的超强安全密钥", "Content-Type": "application/json" },
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     subdomain: "xiaoming",
     type: "anniversary",

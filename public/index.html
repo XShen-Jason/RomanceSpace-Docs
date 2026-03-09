@@ -295,9 +295,34 @@
             icon: "🏗️"
           },
           {
-            title: "子域名与绑定流程",
+            title: "子域名与绑定流程 (CQRS)",
             file: "pages/system.html",
             icon: "🔗"
+          }
+        ]
+      },
+      {
+        name: "⚙️ 部署与架构全解",
+        pages: [
+          {
+            title: "平台后端部署 (VPS)",
+            file: "pages/backend-deploy.html",
+            icon: "🖥️"
+          },
+          {
+            title: "平台前端部署 (Pages)",
+            file: "pages/frontend-setup.html",
+            icon: "📱"
+          },
+          {
+            title: "网关 Worker 节点部署",
+            file: "pages/worker-setup.html",
+            icon: "🌐"
+          },
+          {
+            title: "数据库表结构设计",
+            file: "pages/database-schema.html",
+            icon: "📊"
           }
         ]
       },
@@ -408,6 +433,25 @@
         item.style.display = text.includes(key) ? "flex" : "none"
       })
     })
+
+    // Handle initial hash routing
+    window.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        let foundPage = null;
+        for (const cat of categories) {
+          const page = cat.pages.find(p => p.file === hash);
+          if (page) {
+            foundPage = page;
+            break;
+          }
+        }
+        if (foundPage) {
+          loadPage(foundPage);
+        }
+      }
+    });
+
   </script>
 </body>
 

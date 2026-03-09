@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>数据库表结构设计 (Supabase Schema)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #fff;
+        }
+
+        h1 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #b91c1c;
+            border-left: 4px solid #b91c1c;
+            padding-left: 12px;
+        }
+
+        h3 {
+            margin-top: 25px;
+            color: #0f766e;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            border-radius: 4px;
+            color: #166534;
+            margin: 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        /* 复制按钮样式 */
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📊 数据库极简表结构设计 (Supabase)</h1>
+
+    <div class="note">
+        <strong>真理源点：</strong>
+        在这个拥有诸多组件的云端系统中，<strong>Supabase PostgreSQL</strong> 是业务真理源（Source of Truth）。一旦发生系统崩溃或其他云组件数据丢失，VPS 后端可以完全依托
+        Supabase 中的这些记录，将所有的静态页面重新编译成形并全网下发。
+    </div>
+
+    <h2>主要数据表关联说明</h2>
+    <p>目前只有 2 张核心宽表。由于我们并不自研繁冗庞大的 CMS 管理系统，而是快速迭代 C端需求，字段采用弱外键耦合 + JSONB。</p>
+
+    <h2>一、 templates 表（模板库登记）</h2>
+    <p>该表用于登记开发者上传的所有可用模板的配置信息。该数据表只被 VPS 读取。如果模板需要修改 `schema.json` 里的 <code>fields</code>，这里存放的是最新版。</p>
+
+    <table>
+        <tr>
+            <th>字段名</th>
+            <th>类型</th>
+            <th>默认 / 约束</th>
+            <th>说明</th>
+        </tr>
+        <tr>
+            <td><code>id</code></td>
+            <td>uuid</td>
+            <td>PK, gen_random_uuid()</td>
+            <td>主键</td>
+        </tr>
+        <tr>
+            <td><code>name</code></td>
+            <td>varchar</td>
+            <td>UNIQUE, NOT NULL</td>
+            <td>代号，如 <code>love_letter</code></td>
+        </tr>
+        <tr>
+            <td><code>version</code></td>
+            <td>integer</td>
+            <td>DEFAULT 1</td>
+            <td>随着持续更迭的模板包计数</td>
+        </tr>
+        <tr>
+            <td><code>schema</code></td>
+            <td>jsonb</td>
+            <td>NOT NULL</td>
+            <td>存放原生 <code>schema.json</code> 文件的完整抽象结构与 default 默认占位映射</td>
+        </tr>
+        <tr>
+            <td><code>created_at</code></td>
+            <td>timestampz</td>
+            <td>now()</td>
+            <td>模板诞生时间</td>
+        </tr>
+    </table>
+
+
+    <h2>二、 projects 表（用户生成实例）</h2>
+    <p>保存最终每一位用户填入模板的关键数据。有了这张表，用户更改数据，或者系统整体想发大版本强制重新渲染一遍全网页面，就有了弹药储备。它是平台的<strong>核心变现资产</strong>。</p>
+
+    <table>
+        <tr>
+            <th>字段名</th>
+            <th>类型</th>
+            <th>默认 / 约束</th>
+            <th>说明</th>
+        </tr>
+        <tr>
+            <td><code>id</code></td>
+            <td>uuid</td>
+            <td>PK, gen_random_uuid()</td>
+            <td>主键</td>
+        </tr>
+        <tr>
+            <td><code>user_id</code></td>
+            <td>uuid</td>
+            <td>NULLABLE</td>
+            <td>所有者 (关联 auth.users 外键)，留空代表游客生成</td>
+        </tr>
+        <tr>
+            <td><code>subdomain</code></td>
+            <td>varchar</td>
+            <td>UNIQUE, NOT NULL</td>
+            <td>路由网关依据，例如 <code>xiaoming</code>。绝不会撞车。</td>
+        </tr>
+        <tr>
+            <td><code>template_name</code></td>
+            <td>varchar</td>
+            <td>FK -&gt; templates(name)</td>
+            <td>用户当时选择挂载的模板。如要给用户换壳，改这里。</td>
+        </tr>
+        <tr>
+            <td><code>raw_data</code></td>
+            <td>jsonb</td>
+            <td>NOT NULL</td>
+            <td>用户当场在页端填写的 JSON 内容。如：<code>{ "title": "纪念日", "startDate": "..." }</code></td>
+        </tr>
+        <tr>
+            <td><code>status</code></td>
+            <td>varchar</td>
+            <td>DEFAULT 'active'</td>
+            <td>用于下架禁用恶俗网址。封禁改为 `banned`</td>
+        </tr>
+        <tr>
+            <td><code>updated_at</code></td>
+            <td>timestampz</td>
+            <td>now()</td>
+            <td>用户上回变动内容的时间。</td>
+        </tr>
+    </table>
+
+    <h3>为什么把 raw_data 写成了 JSONB？而不是把 title,
+        startDate 之类的各自建字段？</h3>
+    <p>每一个模板对数据的诉求五花八门，有的模板有 2 个参数，有的则有 50
+        个数组与字典组合参。将表单定制结果浓缩在这一个扁平轻快的 <code>jsonb</code> 黑盒中，能使整个后台引擎永不报错，极度适应未来一百万套各种异形模板的上架。</p>
+
+    <script>
+        document.querySelectorAll('pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.innerText = '复制';
+            btn.addEventListener('click', () => {
+                const text = (pre.querySelector('code') ?? pre).innerText;
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.innerText = '已复制!'; btn.classList.add('copied');
+                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+    </script>
+</body>
+
+</html>

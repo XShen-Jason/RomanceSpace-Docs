@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>项目总览 - 四大仓库协作机制</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #fff;
+        }
+
+        h1 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
+        }
+
+        h3 {
+            margin-top: 25px;
+            color: #0f766e;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 18px 20px;
+            background: #f8fafc;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+
+        .card p {
+            margin: 5px 0 0;
+            font-size: 13px;
+            color: #475569;
+        }
+
+        .card .tag {
+            display: inline-block;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .tag-worker {
+            background: #fef9c3;
+            color: #713f12;
+        }
+
+        .tag-templates {
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .tag-docs {
+            background: #eff6ff;
+            color: #1e3a8a;
+        }
+
+        .tag-platform {
+            background: #fdf4ff;
+            color: #581c87;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .arrow-down {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 20px;
+            margin: 4px 0;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            border-radius: 4px;
+            color: #166534;
+            margin: 20px 0;
+        }
+
+        .warn {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 4px;
+            color: #78350f;
+            margin: 20px 0;
+        }
+
+        .repo-link {
+            color: #2563eb;
+            text-decoration: none;
+            font-family: monospace;
+        }
+
+        .repo-link:hover {
+            text-decoration: underline;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🗺️ 项目总览 — 四大仓库协作机制</h1>
+    <p>本文档是所有技术成员加入 RomanceSpace 的<strong>第一站</strong>。读完这篇，你将从宏观上理解系统的分工逻辑和信息流向，然后再深入到各自的仓库细节。</p>
+
+    <h2>一、为什么要拆成四个仓库？</h2>
+
+    <p>早期项目所有代码放在一个单仓库（monorepo）里，随着功能越来越多，维护成本急剧上升：改一行模板的样式，却要整体重新部署后端逻辑；设计师没有办法独立工作，必须让后端帮他们上传文件。</p>
+    <p>拆分的核心原则是：<strong>每个仓库只做一件事，任何人的改动都不影响其他模块的稳定运行。</strong></p>
+
+    <div class="card-grid">
+        <div class="card">
+            <span class="tag tag-worker">⚙️ 后端 / 基础设施</span>
+            <h3>RomanceSpace-Worker</h3>
+            <p>整个系统的"神经中枢"。负责处理所有 HTTP 请求、路由分发、模板渲染和 API 鉴权。</p>
+        </div>
+        <div class="card">
+            <span class="tag tag-templates">🎨 前端 / 模板美工</span>
+            <h3>RomanceSpace-Templates</h3>
+            <p>存放所有可视化模板的资产（HTML/CSS/JS/图片）。开发者和设计师的主要工作区。</p>
+        </div>
+        <div class="card">
+            <span class="tag tag-docs">📄 文档 / 技术写作</span>
+            <h3>RomanceSpace-Docs</h3>
+            <p>本文档站点本身。记录系统架构、API 接口和运营指南。</p>
+        </div>
+        <div class="card">
+            <span class="tag tag-platform">🏗️ 产品 / 主站开发</span>
+            <h3>RomanceSpace-Platform</h3>
+            <p>用于开发面向终端用户的主站（CMS 管理后台、注册/购买流程等）。<em>（开发中）</em></p>
+        </div>
+    </div>
+
+    <h2>二、四大仓库如何互相协作？</h2>
+
+    <p>系统运转遵循以下协作流程，理解这条数据链路是参与贡献的前提：</p>
+
+    <h3>协作链路 A：模板上架流程</h3>
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div><strong>模板开发者（Templates 仓库）</strong>：在 <code>src/my_card/</code> 下编写
+            HTML/CSS/JS，本地测试确认无误后，<code>git push</code> 到 GitHub。</div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div><strong>GitHub Actions（自动触发）</strong>：检测到 <code>src/</code> 下有改动，运行 <code>upload-template.js</code> 脚本，携带
+            <code>RS_ADMIN_KEY</code> 密钥调用 Worker API。</div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div><strong>Worker（/admin/upload-template）</strong>：接收文件，存入 R2 存储，在 KV 数据库中更新版本号与字段信息。若该模板已有用户使用，触发后台批量重渲染。
+        </div>
+    </div>
+
+    <h3>协作链路 B：用户开通专属页面流程</h3>
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div><strong>主平台后端（Platform 仓库）</strong>：用户在主站选好模板、填写姓名等信息后，主站后端从 <code>ADMIN_KEY</code> 环境变量中取出密钥，向 Worker 发起
+            Server-to-Server 请求。</div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div><strong>Worker（/admin/render-page）</strong>：从 R2 读取模板 HTML，将用户数据注入占位符，生成静态 HTML，保存至 R2 + 更新 KV 路由表。</div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div><strong>用户访问</strong>：用户打开 <code>xiaoming.885201314.xyz</code>，Worker 命中 Cloudflare Cache（最快），再次命中则直接从 R2
+            读取预渲染 HTML，<strong>全程无需数据库实时查询</strong>。</div>
+    </div>
+
+    <h2>三、四大仓库一览表</h2>
+
+    <table>
+        <tr>
+            <th>仓库</th>
+            <th>对应 GitHub</th>
+            <th>部署方式</th>
+            <th>主要负责人</th>
+        </tr>
+        <tr>
+            <td><code>RomanceSpace-Worker</code></td>
+            <td><a class="repo-link" href="https://github.com/XShen-Jason/RomanceSpace-Worker"
+                    target="_blank">XShen-Jason/RomanceSpace-Worker</a></td>
+            <td>手动 <code>npx wrangler deploy</code> 或绑定 CF 自动构建</td>
+            <td>后端 / DevOps</td>
+        </tr>
+        <tr>
+            <td><code>RomanceSpace-Templates</code></td>
+            <td><a class="repo-link" href="https://github.com/XShen-Jason/RomanceSpace-Templates"
+                    target="_blank">XShen-Jason/RomanceSpace-Templates</a></td>
+            <td>自动：<code>git push</code> → GitHub Actions → Worker API</td>
+            <td>前端 / 设计师</td>
+        </tr>
+        <tr>
+            <td><code>RomanceSpace-Docs</code></td>
+            <td><a class="repo-link" href="https://github.com/XShen-Jason/RomanceSpace-Docs"
+                    target="_blank">XShen-Jason/RomanceSpace-Docs</a></td>
+            <td>自动：<code>git push</code> → Cloudflare Pages</td>
+            <td>全体（贡献文档）</td>
+        </tr>
+        <tr>
+            <td><code>RomanceSpace-Platform</code></td>
+            <td><a class="repo-link" href="https://github.com/XShen-Jason/RomanceSpace-Platform"
+                    target="_blank">XShen-Jason/RomanceSpace-Platform</a></td>
+            <td>待定（Next.js / Vercel / CF Pages）</td>
+            <td>全栈 / 产品</td>
+        </tr>
+    </table>
+
+    <h2>四、快速上手：我该从哪个仓库开始？</h2>
+
+    <table>
+        <tr>
+            <th>我的角色</th>
+            <th>推荐第一步</th>
+        </tr>
+        <tr>
+            <td>🎨 前端 / 设计师</td>
+            <td>直接克隆 <code>RomanceSpace-Templates</code>，阅读《模板编写与上传教程》开始编写你的第一套模板。</td>
+        </tr>
+        <tr>
+            <td>⚙️ 后端 / DevOps</td>
+            <td>克隆 <code>RomanceSpace-Worker</code>，阅读《API 接口文档》，了解 Worker 的每个接口的参数格式与响应示例。</td>
+        </tr>
+        <tr>
+            <td>🏗️ 主站全栈</td>
+            <td>克隆 <code>RomanceSpace-Platform</code>，阅读《开通与修改用户网页》调通 <code>/admin/render-page</code> API 流程。</td>
+        </tr>
+        <tr>
+            <td>📄 文档 / 运营</td>
+            <td>克隆 <code>RomanceSpace-Docs</code>，直接修改 <code>public/pages/</code> 下的 HTML 文件，推送后自动上线。</td>
+        </tr>
+    </table>
+
+    <div class="note">
+        <strong>✅ 环境依赖：</strong> 本项目所有仓库只需要 Git + Node.js v18+ 即可参与开发，无需复杂的本地数据库搭建。后端逻辑完全运行在 Cloudflare
+        Edge，本地只需开发和调试模板本身。
+    </div>
+
+    <div class="warn">
+        <strong>⚠️ 密钥管理：</strong><code>ADMIN_KEY</code> / <code>RS_ADMIN_KEY</code> 等密钥<strong>永远不能</strong>出现在任何代码里或提交到
+        Git 仓库中。它们只能配置在 Cloudflare Secret 或 GitHub Repository Secrets 中。
+    </div>
+
+    <script>
+        document.querySelectorAll('pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.innerText = '复制';
+            btn.addEventListener('click', () => {
+                const text = (pre.querySelector('code') ?? pre).innerText;
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.innerText = '已复制!'; btn.classList.add('copied');
+                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,94 +1,131 @@
-# API 接口集成文档
+# API Reference
 
-本文档详细定义了当前 RomanceSpace Node.js **后端 (VPS)** 暴露给外部通信的 RESTful API。所有的网络请求基准地址 (Base URL) 默认为你的线上 VPS 代理地址：`https://api.885201314.xyz`。
+本指南详细说明了 RomanceSpace 的 VPS 核心后端 (Node.js/Express) 提供的 REST API 接口。
 
-> ⚠️ 所有改变平台系统状态的特权管理接口，目前一律需要在请求头(Headers)附带管理员明文密钥 `X-Admin-Key` 鉴权。
+所有写入操作均不在边缘节点执行，由部署在 VPS 上的后端集中处理。以下接口按功能分为两类：**公共接口 (Public)** 和 **管理接口 (Admin)**。
 
 ---
 
-## 🚀 公开服务接口 (Public API — 面向系统使用者)
+## 基础 URL
+如果在本地开发，默认地址可能为 `http://localhost:3000`。
+生产环境中，后端部署在独立 VPS 上并绑定了子域名，基地址通常为 `https://api.yourdomain.com`。
 
-无需 `X-Admin-Key` 凭证验证，通常由部署在 Pages 的 SPA 前端项目（`www`）向公网暴露并代理调用。
+---
 
-### 1. 列表获取 — 获取系统中所有可配置模板
-* **Endpoint:** `GET /api/template/list`
-* **功能:** 从 KV 拉取全量注册生效的静态模板清单字典，供创建画廊展示。
-* **Header / 鉴权:** None
-* **返回成功 (200 OK):**
-  ```json
-  {
-    "success": true,
-    "templates": [
-      {
-        "name": "letter-love",
-        "description": "复古信纸风格爱情模板",
-        "version": "v3k",
-        "static": false,
-        "fields": ["title", "name", "content"]
-      }
-    ]
-  }
-  ```
+## 公共接口 (Public Endpoints)
 
-### 2. 即时生成项目 — (核心业务 C 端接口)
-* **Endpoint:** `POST /api/project/render`
-* **功能:** 根据客户端传来的 JSON 对象，后端模板引擎根据 `{{}}` 语法合并模板中的占位符，写回 R2 生成静态物理 HTML 页面。
-* **应用场景限制:** 目前接口不设防。未来业务壮大后，防滥刷需引入 Cloudflare Turnstile 等防 Bot 拦截工具，但禁止使用重度登录逻辑阻碍第一波用户的引流病毒式体验。
-* **请求体 (Content-Type: application/json):**
-  ```json
-  {
-      "subdomain": "loveyou10000",
-      "type": "letter-love",
+这些接口面向终端用户开放（前端无需传递特殊密钥即可调用）。
+> [!TIP] 防滥用建议
+> 生产环境中，对于公开渲染或修改数据的接口，强烈建议加入 [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) 验证码。
+
+### 1. `GET /api/template/list`
+
+获取所有可用的模板元数据。
+
+*   **Authentication**: None
+*   **Request URL**: `/api/template/list`
+*   **Response**: `200 OK`
+    ```json
+    {
+      "templates": [
+        {
+          "name": "love-letter",
+          "version": "v_1741528392131_f8a9",
+          "static": false,
+          "fields": ["title", "name", "date", "message"],
+          "updatedAt": 1741528392131
+        }
+      ]
+    }
+    ```
+
+### 2. `POST /api/project/render`
+
+根据用户填写的表单，结合选定的模板，渲染生成最终的个性化页面。如果项目不存在则新建；如果存在则覆盖更新。
+
+*   **Authentication**: None (对于 C 端用户，建议接入 Turnstile 以防请求滥炸)
+*   **Request Headers**:
+    *   `Content-Type: application/json`
+*   **Request Body**:
+    ```json
+    {
+      "subdomain": "sweeties",
+      "type": "love-letter",
       "data": {
-          "title": "遇见你真好",
-          "name": "李雷",
-          "content": "你是我这一世最浪漫的心动"
+        "title": "给最爱的宝宝",
+        "name": "Jason",
+        "date": "2026-03-09",
+        "message": "这是我为你亲手制作的礼物"
       }
-  }
-  ```
-* **返回成功 (200 OK):**
-  ```json
-  {
-      "success": true, 
-      "url": "https://loveyou10000.885201314.xyz",
-      "previewUrl": "https://loveyou10000.885201314.xyz?preview=true",
+    }
+    ```
+*   **Response**: `200 OK`
+    `isUpdate` 标志着这是否是对一个已存在域名的修改操作。
+    ```json
+    {
+      "success": true,
+      "message": "Project sweeties has been created/updated.",
+      "url": "https://sweeties.885201314.xyz",
+      "previewUrl": "https://sweeties.885201314.xyz/?preview=1",
       "isUpdate": false
-  }
-  ```
+    }
+    ```
 
-### 3. 热预览 — 查看原生模板的 Demo 结构
-* **Endpoint:** `GET /api/template/preview/:name`
-* **功能:** 不需传递业务信息，VPS 后端从 R2 下载对应模板的 `schema.json` 规则树，强行注入默认字典 (`default: xxx`) 并渲染成网页回传给调用方。
-* **使用范例:** 浏览器直接访问 `https://api.885201314.xyz/api/template/preview/letter-love`，可直接看到拥有预配 Demo 数据的模板展现。 
+### 3. `GET /api/template/preview/:name`
+
+生成包含默认值的模板预览页面。主要用于前端画廊的预览挂载。
+
+*   **Authentication**: None
+*   **Path Variable**: `name` (模板名称，例如 `love-letter`)
+*   **Response**: `200 OK` (返回包含默认参数值的 `text/html`)
 
 ---
 
-## 🔒 独立鉴权接口 (Admin API — 原创者控制面)
+## 管理接口 (Admin Endpoints)
 
-所有此类敏感接口调用方必须附加 Header: `X-Admin-Key: <ADMIN_KEY_VALUE>`。
+这些接口涉及内容录入与敏感查询。调用时必须携带环境变量中设定的 `ADMIN_KEY`。
 
-### 1. 模板分发与上线 (`/api/template/upload`)
-* **Endpoint:** `POST /api/template/upload`
-* **Content-Type:** `multipart/form-data`
-* **功能概览:** 将全新的 HTML 以及相关的 `.css / .js` 模板材料封装抛入后端，后端将以唯一时间戳/哈希将其作为新版打入 R2 桶。同时会解构随行上传的 `schema.json` 文件注册入网桥 KV。若遇到 KV 中存在老业务版，新上传会被视为 "迭代版本升级"。
-* **提交主体 (Form-Data 键值映射):**
-  * `templateName` (Text): 【必选】定义的模板全局引用名字，例 `snow-falling`
-  * `index.html` (File): 【必选】入口 HTML 源码主控端文件
-  * `schema.json` (File): 【可选】定义此模板支持何等数据插槽以及展现信息的元数据定义书
-  * `assets/[任意内部路径文件]` (File): 【可选】随 HTML 工程一同存在的配套切图/CSS，后端程序支持递归解压存放到 R2
+*   **Authentication**: Required Header
+    ```http
+    X-Admin-Key: <your_secret_admin_key>
+    ```
 
-### 2. 探针 — 单体项目 KV 查询 (`/api/project/:subdomain`)
-* **Endpoint:** `GET /api/project/:subdomain`
-* **功能:** 对于运维调试查障非常重要，此接口会强查对应子域名背后的底层 KV 模型绑定。可以诊断这个站点是不是路由错了或者没绑定上正确类型。
-* **返回范本:**
-  ```json
-  {
+### 1. `POST /api/template/upload`
+
+上传一个新的模板或更新现有模板。以 `multipart/form-data` 格式发送文件。
+
+*   **Authentication**: Required
+*   **Content-Type**: `multipart/form-data`
+*   **Form Data Fields**:
+    *   `templateName` (string, 必需) - 新模板的唯一标识名称（例如：`star-sky`）。
+    *   `index.html` (file, 必需) - 模板的核心 HTML 文件（其中使用 `{{field_name}}` 占位符）。
+    *   `schema.json` (file, 必需) - 定义前端应向用户展示哪些表单项的配置。
+    *   `assets/*` (files, 可选) - 多文件上传。支持所有的图片、CSS、JS 等静态资源。所有相对路径都会被完美保留并存储在 R2 中。
+*   **Response**: `200 OK`
+    ```json
+    {
       "success": true,
-      "subdomain": "jason",
-      "config": {
-          "type": "romantic-firework",
-          "data": { "to": "Amy", "music": "on" },
-          "timestamp": "2026-03-09T08:12:00Z"
-      }
-  }
-  ```
+      "message": "Template star-sky uploaded successfully.",
+      "version": "v_1741530182405_b21c",
+      "previewUrl": "https://api.yourdomain.com/api/template/preview/star-sky"
+    }
+    ```
+
+### 2. `GET /api/project/:subdomain`
+
+检查一个指定用户子域名的原始底层配置数据（此数据由 Cloudflare KV 直接读取而来）。
+
+*   **Authentication**: Required
+*   **Path Variable**: `subdomain` (子域名前缀，无点)
+*   **Response**: `200 OK`
+    ```json
+    {
+      "type": "love-letter",
+      "data": {
+        "title": "给最爱的宝宝",
+        "name": "Jason",
+        ...
+      },
+      "updatedAt": 1741528621455
+    }
+    ```

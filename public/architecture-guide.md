@@ -1,60 +1,106 @@
-# RomanceSpace 核心架构指南
-> 本文档面向开发者及运维人员，详细阐述本项目前后端彻底分离的微服务架构。
+# RomanceSpace 架构指南
 
-## 🎯 系统生态
+本文档面向开发者和维护人员，详细解释 RomanceSpace 的技术架构、请求流转过程以及各组件的职责。
 
-RomanceSpace 是一个基于 Serverless (Cloudflare) + VPS (Node.js) 混合云架构构建的极速网页生成平台。
+## 整体架构 (CQRS + 边缘计算)
 
-为了获得最佳的性能体验和最小化成本，系统由 **四个独立的代码仓库** 分工协作：
+RomanceSpace 旨在提供毫秒级的极致访问体验，同时保持灵活的动态能力。我们采用了 **CQRS (命令查询职责分离)** 模式：
 
-### 1. `RomanceSpace-Frontend` (前端 React SPA)
-* **职责**：面向普通用户的交互界面（落地页、模板画廊、建站生成器）。
-* **技术栈**：Vite + React 18 + React Router v6 + Vanilla CSS。
-* **部署节点**：Cloudflare Pages 全球 CDN 网络。
-* **访问域名**：`www.885201314.xyz` (直连，无 Worker 拦截)。
-* **特点**：纯静态，0 敏感数据。所有的写操作与后端 API 通信。
+*   **读取 (Query) 是海量的**：由 Cloudflare Worker 在全球边缘节点纯静态处理，命中率高达 99%。
+*   **写入 (Command) 是偶发的**：由位于核心 VPS 上的 Node.js 后端集中处理，进行鉴权、渲染并分发到全球。
 
-### 2. `RomanceSpace-Backend` (VPS 后端 API)
-* **职责**：处理所有重逻辑与写操作（模板文件上传解析、HTML 模板引擎注入渲染、与 Cloudflare 生态强绑定的 R2 读写及 KV 配置更新）。
-* **技术栈**：Node.js + Express + AWS-S3-SDK (针对 R2) + CF REST API。
-* **部署节点**：你的专属云服务器 (VPS) 实例。
-* **访问域名**：`api.885201314.xyz` (需通过 Nginx 反向代理绑定域名，配合 CF 橙色云朵加密)。
-* **特点**：单点故障敏感。需保管好 `.env` 中的大量 CF 管理员 Token 令牌。所有核心写操作均须由 `X-Admin-Key` 校验控制。
+整个系统由四个代码仓库组成：
 
-### 3. `RomanceSpace-Worker` (边缘网关与读缓存)
-* **职责**：全球用户的超高速项目分发通道。
-* **技术栈**：Cloudflare Workers (V8 JavaScript Edge Runtime)。
-* **部署节点**：运行在离用户的手机真实物理距离最近的 Cloudflare 数据中心。
-* **访问域名**：泛域名 `*.885201314.xyz`。
-* **特点**：只读操作。无任何写逻辑的 200 行极简代码。负责智能多级缓存策略：先读 `Cache API` -> 再读 KV (获取映射) -> 再读 R2 (获取 HTML)。顺带拦截处理所有 404 死胡同，重定向到前端官网。
-
-### 4. `RomanceSpace-Docs` (项目文档库)
-* **职责**：就是你现在正在看的这套文档库。
-* **部署节点**：Cloudflare Pages。
-* **访问域名**：`docs.885201314.xyz` 和 `document.885201314.xyz`。
+1.  **Frontend (前端 SPA)**：React + Vite，无状态，部署在 Cloudflare Pages。
+2.  **Backend (核心 API)**：Node.js + Express，处理重逻辑，部署在独立 VPS。
+3.  **Worker (边缘网关)**：Cloudflare Worker，处理数百个边缘节点的路由和缓存。
+4.  **Docs (文档站)**：您正在查看的站点，部署在 Cloudflare Pages。
 
 ---
 
-## 🚦 流量路由图 (Cloudflare DNS 编排)
+## 流量流转图 (Traffic Flow)
 
-为了防止 Worker 本身的泛解析拦截引发无限死循环，Cloudflare 的 **Workers 路由 (Worker Routes)** 必须严密配置：
+当用户在浏览器中输入不同域名时，Cloudflare 网络层（DNS / Worker Routes）会进行精准的分发：
 
-| 客户端请求目标地址 | HTTP 动作 | 承接容器 | 是否经过 Worker | 描述说明 |
-| :------- | :---: | :------- | :---: | :------- |
-| `www.885201314.xyz` | GET | Pages (前端) | ❌ 不经过 (Bypass) | 面向 C端 用户的构建页面体验 |
-| `api.885201314.xyz` | POST / GET | VPS (Nginx) | ❌ 不经过 (Bypass) | 承接所有纯数据写入/业务接口 |
-| `docs.885201314.xyz` | GET | Pages (文档) | ❌ 不经过 (Bypass) | 研发人员查阅的纯静态 MD 文档 |
-| `*.885201314.xyz` | GET | CF Worker | ✅ Edge 拦截 | 通过 KV 读取该域名配置并从 R2 返回用户生成的 HTML 站点，渲染零延迟 |
+```mermaid
+graph TD
+    User([普通用户 / 访客])
+    
+    %% Domains
+    D_WWW[www.885201314.xyz\n主站]
+    D_API[api.885201314.xyz\n接口请求]
+    D_SUB[*.885201314.xyz\n用户生成项目]
+    D_DOCS[docs.885201314.xyz\n开发文档]
+    
+    %% Routing
+    User --> D_WWW
+    User -->|API Fetch| D_API
+    User --> D_SUB
+    User --> D_DOCS
+
+    %% Destinations
+    CF_Pages_Frontend[Cloudflare Pages\nFrontend SPA]
+    CF_Pages_Docs[Cloudflare Pages\nDocs Site]
+    VPS[VPS Server\nNode.js Backend]
+    Worker[Cloudflare Worker\nEdge Gateway]
+
+    %% Network links
+    D_WWW -->|DNS CNAME (Bypass Worker)| CF_Pages_Frontend
+    D_DOCS -->|DNS CNAME (Bypass Worker)| CF_Pages_Docs
+    D_API -->|DNS A Record (Proxied)| VPS
+    D_SUB -->|Wildcard Route| Worker
+
+    %% Worker internal flow
+    KV[(Cloudflare KV\n路由表)]
+    R2[(Cloudflare R2\n静态页面存储)]
+    EdgeCache[(Cloudflare Cache\nCDN 缓存)]
+
+    Worker -.->|1. Lookup| EdgeCache
+    EdgeCache -.->|Miss| KV
+    KV -.->|Resolve ID| R2
+    R2 -.->|Return HTML| Worker
+```
 
 ---
 
-## 🔄 CQRS 读写分离流 (以“创建一个页面”为例)
+## 组件详解
 
-1. **(前台交互)** 普通用户在 `www` (前端) 填写表单数据，并起名 `love`。
-2. **(数据发往重镇)** 前端通过 `apiClient.js` 向 VPS `api.885201314.xyz/api/project/render` 接口提交 JSON 表单。
-3. **(VPS 组装加工)** VPS 开始疯狂工作：校验表单 -> 读取原版 HTML -> 替换 `{{标题}}` -> **生成最终静态物理文件**。
-4. **(VPS 发出号令)** VPS 将生成好的物理 HTML 上传到原厂 CF R2 存储桶；再把此路由字典挂载到 KV 存储；最后如果之前系统有旧缓存，VPS 还会顺手请求 CF Purge API 把以前旧版的网页清出缓存节点。
-5. **(任务完结)** VPS 回复给前端“渲染就绪”。前端弹框显示：“生成成功！请点击 `love.885201314.xyz` 欣赏您的浪漫网页”。
-6. **(消费者访问)** 接收到网页的小红收到链接 `love.885201314.xyz`，手机点击立即点亮最近的 Edge Worker。Worker 毫秒级从 KV/R2 里获取网页吐出页面并再次缓存。
+### 1. Cloudflare Pages (Frontend & Docs)
 
-这就是 RomanceSpace 强大的工程骨架！
+**职责**：提供对外的图形交互界面。
+**特点**：
+*   **零服务器成本**：享受 Cloudflare 的免费静态托管。
+*   **无需 Worker 计算**：我们在域名路由层**禁用了** `www` 和 `docs` 域名的 Worker（即“旁路 Bypassed”），流量直达 Pages 节点，既保证了最高速度，也不消耗每日 10 万次的 Worker 免费额度。
+*   **环境变量隔离**：Frontend 源码中无任何密钥。与后端通信的地址通过 Pages 的环境变量 `VITE_API_BASE_URL` 动态注入。
+
+### 2. VPS Node.js Backend (写操作核心)
+
+**职责**：所有会改变系统状态的操作（如：上传模板、生成新页面）。
+**部署**：一台独立的 Linux VPS，前置 Nginx 反向代理。通过 Cloudflare DNS 代理（橙色云朵）保护真实 IP 免遭 DDoS 攻击。
+
+**工作流 (以渲染页面为例 `POST /api/project/render`)**：
+1.  **接收数据**：Frontend 发送 JSON（子域名、模板名、自定义文字）。
+2.  **获取模板**：后端通过 `aws-sdk` (S3 兼容 API) 从 R2 获取模板的 `index.html`。
+3.  **渲染 (SSR)**：使用后端的 `injectData()` 将用户的文字注入到 HTML 中。
+4.  **强覆盖存储**：将处理好的成品 `[subdomain].html` 上传到 R2 `pages/` 目录。
+5.  **更新路由**：通过 REST API 将 `[subdomain] -> { type, data }` 写入 Cloudflare KV。
+6.  **清除缓存**：通过 CF Zone API 强制清除 CDN 节点上该页面的旧缓存，确保用户立即看到最新版。
+
+### 3. Cloudflare Worker (边缘只读网关)
+
+**职责**：接管所有的泛解析子域名流量（如 `amy.885201314.xyz`），并以毫秒级返回内容。目前代码精简到了不到 200 行，**没有任何 POST 写逻辑**。
+
+**工作流**：
+1.  **缓存优先**：检查 `caches.default`（本边缘节点的内存缓存）。命中则直接返回，0 延迟，0 API 消耗。
+2.  **查路由表**：未命中时，查询 KV，确认这个子域名是否存在。
+3.  **取页面**：从 R2 抓取已经由 VPS 预渲染好的 `[subdomain].html`。
+4.  **动态注入**：在 `</body>` 前动态插入病毒营销的 Footer（"点击创建你的专属页面"），引导回流。
+5.  **回填缓存**：将带有 Footer 的完整内容存入边缘缓存（1小时），并返回给用户。
+
+### 4. 数据存储 (R2 & KV)
+
+系统不使用传统关系型数据库存储页面，而是利用键值和对象存储的完美配合：
+*   **R2 (对象存储)**：存储大体积文件。包含 `templates/`（模板的 HTML/CSS/JS/图片）和 `pages/`（VPS 预渲染好的用户成品 HTML）。
+*   **KV (键值存储)**：用作毫秒级路由表和元数据源。
+    *   键 `__tmpl__{模板名}`：存储模板的当前版本号。
+    *   键 `{subdomain}`：存储项目的配置信息，告知 Worker 这是一个有效的项目。

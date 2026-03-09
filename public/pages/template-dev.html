@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>模板编写与上传教程</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #fff;
+        }
+
+        h1 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
+        }
+
+        h3 {
+            margin-top: 30px;
+            color: #0f766e;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+            font-size: 0.9em;
+        }
+
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .file-tree {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 15px 20px;
+            border-radius: 6px;
+            font-family: monospace;
+            color: #334155;
+        }
+
+        blockquote {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #166534;
+        }
+
+        /* 复制代码按钮样式 */
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h1>🧑‍💻 模板开发与上传指南</h1>
+
+    <p>作为一个前端切图仔/工程师，恭喜你找到了最舒服的模板开发方式：<strong>你只需要写纯正的 HTML、CSS和JS 文件，不需要懂任何构建工具或复杂的框架。</strong></p>
+
+    <h2>一、 一个模板的标准姿势</h2>
+
+    <p>在本地电脑的 <code>romancespace/templates/</code> 目录下，每一个文件夹就是一个模板项目。比如我们建一个名为 <code>my_card</code>
+        的模板，它的里面只能（且必须）有以下核心文件：</p>
+
+    <div class="file-tree">
+        romancespace/templates/my_card/<br>
+        ├── index.html (必填) 网页骨架和占位符<br>
+        ├── schema.json (可选) 定义有哪几个空给用户填<br>
+        ├── style.css (可选) 你的样式表<br>
+        ├── script.js (可选) 你的动画或交互脚本<br>
+        └── img/<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;└── bg.jpg (可选) 图片素材，你想放多深都可以
+    </div>
+
+    <h2>二、 编写 index.html (注入灵魂)</h2>
+
+    <p>这就是一张普通的网页，你只需要在想要展示“用户填写的文字”的地方，放上 <code>{{参数名}}</code> 即可。</p>
+
+    <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;!-- 引用本模板内部的 CSS，注意路径格式：/assets/你的模板名/文件名 --&gt;
+  &lt;link rel="stylesheet" href="/assets/my_card/style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+  &lt;h1&gt;{{title}}&lt;/h1&gt;
+  &lt;p&gt;这是由 {{author}} 给你留的一段话。&lt;/p&gt;
+
+  &lt;!-- 此处也可以引用模板内置图片 --&gt;
+  &lt;img src="/assets/my_card/img/bg.jpg"&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+    <blockquote>
+        <strong>安全科普 (XSS 防御)：</strong><br>
+        不管用户在主平台里乱填什么恶作剧代码试图黑你的网页（比如填 <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>），系统在生成这页 HTML
+        之前，都会强制把敏感符号转义掉。所以，前端放心把 <code>{{}}</code> 贴在页面任何地方，绝对安全可用。
+    </blockquote>
+
+    <h2>三、 编写 schema.json (配置字典)</h2>
+
+    <div class="file-tree" style="margin-bottom: 20px; background: #fffbeb; border-color: #fde68a; color: #92400e;">
+        <strong>🔄 定制化参数是怎么通信的？（必看映射关系）：</strong><br><br>
+        这三者是一一对应的齿轮：<strong>[主站传的 Data] -> [Schema.json 的 key] -> [HTML 的占位符]</strong><br><br>
+        1. <strong>起点 (主站发起)：</strong> 主站服务器调用 API 接口时，传入了自定义数据。比如 <code>"data": { "title": "老婆生日快乐" }</code>。<br>
+        2. <strong>桥梁 (schema.json 定义)：</strong> 系统拿到数据后，会核对当前模板的 <code>schema.json</code>。只要里面定义过
+        <code>{"key": "title"}</code>，系统就会放行，提取出对应的这句“老婆生日快乐”。<br>
+        3. <strong>终点 (index.html 替换)：</strong> 最后，系统像做文本查找替换一样，把 <code>index.html</code> 源码里所有的 <code>{{title}}</code>
+        全部擦除，印上“老婆生日快乐”。<br><br>
+        <em>💡 如果主站 API 没有传 <code>title</code> 这个字段过来，或者用户留空了，系统就会智能降级，抽取 schema.json 里事先写好的 <code>default</code>
+            默认词填进去。</em>
+    </div>
+
+    <p>如果你上面的 HTML 里写了 <code>{{title}}</code> 和
+        <code>{{author}}</code>，主站如果需要生成“模板填写表单”，该以什么规范传参数？这里就是 <code>schema.json</code> 登场的地方。
+    </p>
+
+    <pre><code class="language-json">{
+  "static": false,
+  "fields": [
+    { 
+      "key": "title", 
+      "type": "string", 
+      "default": "默认大标题" 
+    },
+    { 
+      "key": "paragraphs",
+      "type": "array",
+      "join": "&lt;/p&gt;&lt;p&gt;",
+      "wrapStart": "&lt;p&gt;",
+      "wrapEnd": "&lt;/p&gt;",
+      "default": ["这是第一段", "这是第二段"]
+    }
+  ]
+}</code></pre>
+
+    <h3>schema.json 字段规范说明</h3>
+    <ul>
+        <li><code>static</code> (Boolean): 当前模板是否为纯静态页面。如果设为 <code>true</code>，代表这个页面不接收任何用户的数据定制，系统处理此模板速度极快。</li>
+        <li><code>fields</code> (Array): 这个模板里面所有可被修改的 <code>{{参数}}</code> 集合。</li>
+    </ul>
+
+    <h4>单个 field (字段) 可以配置什么：</h4>
+    <table style="width:100%; text-align:left; border-collapse:collapse; font-size:14px; margin-bottom: 20px;">
+        <tr style="border-bottom: 2px solid #eee;">
+            <th style="padding: 10px;">属性</th>
+            <th style="padding: 10px;">类型</th>
+            <th style="padding: 10px;">必选？</th>
+            <th style="padding: 10px;">说明</th>
+        </tr>
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px;"><code>key</code></td>
+            <td style="padding: 10px;">String</td>
+            <td style="padding: 10px; color: #dc2626;">必填</td>
+            <td style="padding: 10px;">HTML 中 <code>{{}}</code> 里的英文代号。</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px;"><code>type</code></td>
+            <td style="padding: 10px;">String</td>
+            <td style="padding: 10px; color: #dc2626;">必填</td>
+            <td style="padding: 10px;"><code>string</code> (纯文本) 或 <code>array</code> (数组，常用于多段落或循环名册)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px;"><code>default</code></td>
+            <td style="padding: 10px;">Any</td>
+            <td style="padding: 10px;">可选</td>
+            <td style="padding: 10px;">用户如果传了空值，网页上默认显示的占位文字。</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px;"><code>join</code></td>
+            <td style="padding: 10px;">String</td>
+            <td style="padding: 10px;">特殊</td>
+            <td style="padding: 10px;">仅当 <code>type</code>="array" 时有效，数组元素之间的拼接符号。例如表白段落的
+                <code>&lt;/p&gt;&lt;p&gt;</code>。
+            </td>
+        </tr>
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px;"><code>wrapStart / wrapEnd</code></td>
+            <td style="padding: 10px;">String</td>
+            <td style="padding: 10px;">特殊</td>
+            <td style="padding: 10px;">仅当 <code>type</code>="array" 时有效，在整个拼接好的字符串最外层包上一层。例如 <code>&lt;p&gt;</code> 和
+                <code>&lt;/p&gt;</code>。
+            </td>
+        </tr>
+    </table>
+
+
+    <h2>四、 上传部署到线上</h2>
+
+    <p>模板支持两种上传方式，看你处于哪个阶段：</p>
+
+    <h3>方式 1：本地快速上传（供前端本地调试用）</h3>
+    <p>写好模板，在本机浏览器测试看看一切 OK 后，只需要**一行代码**，连编译都不用，直接送上云端。</p>
+    <pre><code># 第1步：切入后台文件夹
+cd C:\Users\xxx\Desktop\Romance\romancespace
+
+# 第2步：告诉终端你的密钥密码 (每次关闭窗口可能需要重敲)
+$env:RS_ADMIN_KEY="你的超强密钥123"
+
+# 第3步：执行上传！语法为 npm run upload 模板名 本地路径
+npm run upload my_card ./templates/my_card</code></pre>
+
+    <h3>方式 2：使用主平台接入上传（推荐长期使用）</h3>
+    <p>如果你正在开发一个 CMS 管理后台，想让站长在网页上打包上传模板（而不碰命令行），你可以直接调用边缘节点的 <strong>文件直传
+            API</strong>。请移步左侧菜单栏里的<strong>《开通与修改用户网页》</strong>文档（见<strong>第二大节: 上传模板 API</strong>）。</p>
+
+
+    <h2>五、 如果我想更新模板怎么办？</h2>
+
+    <p>修复了 <code>style.css</code> 的一个样式 bug？直接重复执行上面的上传动作即可（调用 API 或命令行均可）。</p>
+    <p>系统非常聪明，当它发现你是二次覆盖更新时，它不仅会更新静态资源文件，还会<strong>在后台把之前所有用过这个模板的几百个、几千个用户的个人专属旧网页，一口气顺带连锅端掉全帮你重新生成一次新版本。</strong>整个过程平滑，并且访客不会遇到任何
+        404。</p>
+
+    <script>
+        // 注入“复制”按钮
+        document.querySelectorAll('pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.innerText = '复制';
+
+            btn.addEventListener('click', () => {
+                let text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+                // 去除上面这行“复制”文本本身
+                text = text.replace(/^复制\n/, '');
+
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.innerText = '已复制!';
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        btn.innerText = '复制';
+                        btn.classList.remove('copied');
+                    }, 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+    </script>
+
+</body>
+
+</html>

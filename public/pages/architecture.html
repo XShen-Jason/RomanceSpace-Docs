@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>核心工作原理 (图解)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      max-width: 900px;
+      margin: auto;
+      padding: 40px;
+      line-height: 1.7;
+      color: #1f2937;
+      background: #fff;
+    }
+
+    h1 {
+      margin-top: 0;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+      color: #1e3a8a;
+    }
+
+    h2 {
+      margin-top: 40px;
+      color: #2563eb;
+      border-left: 4px solid #2563eb;
+      padding-left: 12px;
+    }
+
+    h3 {
+      margin-top: 30px;
+      color: #0f766e;
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    ul,
+    ol {
+      padding-left: 20px;
+      margin-bottom: 20px;
+    }
+
+    li {
+      margin: 8px 0;
+    }
+
+    pre {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 20px;
+      border-radius: 8px;
+      overflow: auto;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    code {
+      font-family: monospace;
+      color: #be185d;
+      font-size: 0.9em;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    blockquote {
+      background: #fdfae6;
+      border-left: 4px solid #f59e0b;
+      padding: 15px 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+      color: #78350f;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      margin-right: 5px;
+    }
+
+    .badge-worker {
+      background: #f59e0b;
+    }
+
+    .badge-kv {
+      background: #3b82f6;
+    }
+
+    .badge-r2 {
+      background: #ec4899;
+    }
+
+    .badge-cache {
+      background: #10b981;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <h1>🚀 核心概念与工作原理 (图解)</h1>
+
+  <p>这是一个基于 Cloudflare 的超高并发、极低成本的三级域名小网页分发平台（RomanceSpace）。为了能在“完全免费”的前提下支撑极高的访问量，系统底层经过了深度优化设计。</p>
+  <p>阅读本文，你将了解这套被称作 <strong>“写时预渲染 (Write-time Pre-rendering) + Cache 分发”</strong> 的架构到底是怎么运作的。</p>
+
+  <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+
+  <h2>一、 四大护法（Cloudflare 核心组件）通俗比喻</h2>
+
+  <p>整个系统由四个免费且极其强大的 Cloudflare 组件相互协作完成：</p>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-worker">1. Worker</span> 路由器兼组装厂</h3>
+    <p><strong>通俗比喻：</strong> 公司前台接待员 + 流水线装配工。他不自己存任何东西，工作全凭记忆力（每秒上千次无情分发）。</p>
+    <p><strong>它的作用：</strong> 拦截用户的网址访问，判断该去哪里找内容。当管理员分发新网页时，他负责把“半成品模板”和“用户定制数据”组装成“最终网页”。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-kv">2. KV</span> 登记处指示牌</h3>
+    <p><strong>通俗比喻：</strong> 一本极其轻薄的小本子。里面只写谁用什么模板（例：<code>小明 -> 纪念日模板</code>）。</p>
+    <p><strong>它的作用：</strong> 存储极快的键值对查询。在这个架构里，KV <strong>不存储巨大的复杂数据</strong>，只用于记录用户的基本绑定关系，当成目录表使用。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-r2">3. R2</span> 无限大仓库</h3>
+    <p><strong>通俗比喻：</strong> 一个不用付快递费（出口流量免费）的超大仓库。</p>
+    <p><strong>它的作用：</strong> 存放海量静态文件（图片、CSS样式、音乐）。最核心的是，<strong>Worker 组装好的最终版网页也会直接存进这里</strong>。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-cache">4. Cache</span> 门口的免费橱窗</h3>
+    <p><strong>通俗比喻：</strong> 前台门外的展示大屏。路人直接看大屏，不用敲门进公司打扰任何员工。</p>
+    <p><strong>它的作用：</strong> 免费帮我们阻挡 99% 的请求压力。网页被访问一次后，就会在这个橱窗里复印一份贴上。之后一万个人来看，都不消耗上面三个组件的任何额度！</p>
+  </div>
+
+  <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+
+  <h2>二、 核心工作流程（图解）</h2>
+
+  <p>我们将整个系统拆解为三个极其常见但分工明确的步骤。请结合上面的四个角色来理解：</p>
+
+  <h3>流程 ①：管理员/开发者上传一套“半成品模板”</h3>
+  <p>模板包含了长相固定的外壳，但里面会有挖空的占位符（比如：<code>{{ta的名字}}</code>）。</p>
+  <pre>
+【管理员跑了一条命令】 -> $ npm run upload ...
+        │
+        ▼
+[Worker 接收并检查文件]
+        ├── 将 index.html, style.css 等原封不动搬进【R2 仓库】
+        └── 顺手在【KV 指示牌】上新写一行："今天进货了一套模板叫 LoveLetter"
+  </pre>
+
+  <h3>流程 ②：主平台为“小明”开通他的专属页面 🔑（核心黑科技）</h3>
+  <p>小明在您的主网站（服务器）上，买了一个网页，并填入了表白对象的文字。主平台服务器接着通知 Cloudflare 系统：</p>
+  <pre>
+【主平台服务器 调用 API】 -> 告诉 Worker："小明搞了个 LoveLetter，文字是'我爱你'"
+        │
+        ▼
+[Worker 开始组装 (预渲染)]
+        ├── 从【R2 仓库】拿出 LoveLetter 这个半成品。
+        ├── 像填空一样，把 "我爱你" 塞进 HTML 里的 {{ta的名字}} 里，变成一张完整的报纸。
+        ├── 关键一步：把这份做好的报纸（小明专属版 HTML），重新塞回【R2 仓库】。
+        ├── 在【KV 指示牌】上写："xiaoming -> LoveLetter"。
+        └── 把【Cache 橱窗】里小明的旧网页撕掉（如果有旧的话）。
+  </pre>
+  <blockquote>
+    <strong>重点解答：为什么主平台调用 API 时就直接渲染 HTML 放进 R2？</strong><br>
+    如果在用户访问时才实时去拿数据渲染，每次访问都要费时费力。而在主干（写的时候）直接生成静态 HTML 存放，这种“写时预渲染”能让千万人同时访问这页 HTML 也不崩。
+  </blockquote>
+
+  <h3>流程 ③：小明的朋友们猛烈访问页面（读缓存抗压）</h3>
+  <p>小明把链接 <code>xiaoming.885201314.xyz</code> 发到了拥有几万人的朋友圈里。</p>
+  <pre>
+【几万个人同时打开网址】
+        │
+        ▼
+请求来到 Cloudflare 边缘节点 (Worker 门口)
+        │
+        ├─ 查【Cache 橱窗】找到了小明的网页？ 
+        │    ✅ 直接返回！(0延迟，0费用，此分支将承受 99.9% 流量)
+        │
+        └─ 如果橱窗里刚好没找到 (比如这是第一个访客，或缓存刚过期)
+             │
+             [Worker] 被唤醒，进去【R2 仓库】把之前预先做好的 "小明的HTML报纸" 拿出来。
+             交给访客，同时顺手在【Cache 橱窗】贴一张复印件，方便后来者。
+  </pre>
+
+  <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+
+  <h2>三、 这套架构到底解决了什么痛点？</h2>
+
+  <p>对比传统的通过在数据库里读取模板代码并实时组装（SSR）方案，本架构拥有以下降维打击优势：</p>
+
+  <ol>
+    <li>
+      <strong>免费版额度再也不用发愁</strong><br>
+      Cloudflare Worker 每天有 10 万次请求限额，R2 读取也有限制。由于我们加入了 <strong>24小时 Cache</strong>，这 10
+      万次限制只在缓存未命中时消耗。理论上这套架构可以**每个月承载百万级甚至千万级的 PV 访问**，且账单永远是 $0。
+    </li>
+    <li>
+      <strong>模板多文件支持极佳</strong><br>
+      老架构往往只能把模板代码打包在一个巨大的 JS 文件里。现在的模板，就是极其纯正的 <code>.html</code> + <code>.css</code> + <code>.js</code> 放进 R2
+      存储，Worker 完全不管里面写了什么代码，静态资源甚至**完全绕过 Worker** 直连 R2 的公共 URL。
+    </li>
+    <li>
+      <strong>没有安全漏洞 (XSS) 的恐慌</strong><br>
+      Worker 组装 HTML 时，用户填写的任何文字（比如恶作剧写了一段黑客 <code>&lt;script&gt;</code> 脚本）都会在打入 HTML
+      前被强行转换成安全的文字（<code>&amp;lt;script&amp;gt;</code>），杜绝了跨站脚本攻击。
+    </li>
+  </ol>
+
+  <div class="card" style="border-left: 4px solid #10b981;">
+    <strong>总结结论：</strong> 我们把最沉重的运算（模板渲染、数据合并），移到了<strong>用户修改资料的那一刻</strong>。之后不论是 1 个人看，还是 1 亿个人看，边缘系统都只在做一件成本近乎于 0
+    的事情 —— 把现成的静态 HTML 丢给浏览器。
+  </div>
+
+</body>
+
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>子域名与绑定流程</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #fff;
+        }
+
+        h1 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #2563eb;
+            border-left: 4px solid #2563eb;
+            padding-left: 12px;
+        }
+
+        .flowbox {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .step {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .step-num {
+            flex: 0 0 32px;
+            height: 32px;
+            background: #2563eb;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .step-content h4 {
+            margin: 0 0 5px 0;
+            color: #0f172a;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #475569;
+            font-size: 15px;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h1>🔗 子域名分配与数据绑定流程</h1>
+
+    <p>这个体系最魔法的地方在于：只要主平台发一纸“调令”（调一条 API），属于用户专属的小网页就立刻在几秒内诞生，并分配好了独一无二的子网址（如 <code>xiaoming.885201314.xyz</code>）。</p>
+    <p>本文说明这条链路是怎么走通的。</p>
+
+    <h2>一、基础原理：Cloudflare DNS 泛解析</h2>
+
+    <p>为了做到让每个用户都能自由命名网址，而不需要管理员去后台一条一条添加 DNS 记录，我们在域名管理处设置了 <strong>泛解析（Wildcard DNS）</strong>。</p>
+
+    <p>配置内容： <code>*.885201314.xyz  ->  指向 Worker</code></p>
+    <ul>
+        <li>也就是说，无论是 <code>apple.885201314.xyz</code> 还是 <code>banana.885201314.xyz</code>，DNS 解析后都会被瞬间转发到我们的
+            RomanceSpace Worker 门前。</li>
+        <li>到了门前后，Worker 会掐头去尾，提取出最前面的那个词（比如 <code>apple</code> 或 <code>banana</code>）。</li>
+        <li>Worker 拿着这个词，去 KV（指示牌）里翻找：这个词有被注册开通过吗？</li>
+    </ul>
+
+    <h2>二、业务运转全流程：从填表到网页诞生</h2>
+
+    <p>下面展示了一个完整的“开通”链路。这是<strong>主站服务器</strong>（即处理用户付费、表单提交的那台机器）和 <strong>Cloudflare Worker</strong>（边缘节点）直接打交道的过程。
+    </p>
+
+    <div class="flowbox">
+
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+                <h4>用户在您的“主网站”浏览</h4>
+                <p>小明在您的主站页面上逛，看中了一个纪念日模板（代号：<code>anniversary</code>）。</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+                <h4>用户填写定制信息</h4>
+                <p>小明选定后，主站网页弹出一个表单，让小明输入：男方名字、女方名字、想说的话、想要的前缀拼音。小明填入了 <code>xiaoming</code>。</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+                <h4>主站服务器查重与校验</h4>
+                <p>主网站的 PHP/Java/Node 服务器接收到了提交。由于 <code>xiaoming</code> 这个词全站唯一，主服务器查了下自己的数据库，发现没人用过，于是允许创建（也许还收了小明 9.9
+                    元）。</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+                <h4>【核心】主站调用 Worker API 发送调令</h4>
+                <p>主服务器整理好小明填的数据，往 Worker 的接口（<code>POST /admin/render-page</code>）发了一道命令请求。</p>
+                <pre>
+POST https://romancespace.885201314.xyz/admin/render-page
+Header: X-Admin-Key="你的安全密钥"
+Body: {
+  "subdomain": "xiaoming",
+  "type": "anniversary",
+  "data": { "names": ["小明", "真真"], "message": "一生一世" }
+}</pre>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-content">
+                <h4>Worker 收到调令，后台秒级预渲染</h4>
+                <p>Worker 拿到请求后做两件事：<br>
+                    1. 像印刷机一样，把“小明”和“真真”等数据，当场印到 <code>anniversary</code> 的原始 HTML 页面里。<br>
+                    2. 把印好的这份 HTML 网页丢进 R2 大仓库里，并清空旧的缓存。
+                </p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">6</div>
+            <div class="step-content">
+                <h4>访问生效</h4>
+                <p>Worker 给主服务器返回 <code>{"success": true}</code>。主服务器随即在页面上告诉小明：“您的专属网页已建好！”<br>
+                    小明此时点开 <code>https://xiaoming.885201314.xyz</code>，秒开网页，数据已然是他定制的内容。
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <h2>三、关于数据修改与更新</h2>
+
+    <p>如果小明第二天决定改掉那句“一生一世”怎么办？</p>
+
+    <p>完全不用担心。主站只需要<strong>重做一遍上面的步骤 4</strong>（把新数据再次 POST 给 Worker），Worker 就会重新渲染一张带有新文字的网页，并覆盖掉 R2 仓库里的旧网页，同时一脚把大门口旧的
+        Cache 踢飞。</p>
+
+    <p>小明刷新网址，新文字立马出现。</p>
+
+</body>
+
+</html>

@@ -63,10 +63,24 @@
 
         .arrow {
             text-align: center;
-            color: #64748b;
-            font-size: 24px;
+            color: #b91c1c;
+            font-size: 18px;
             font-weight: bold;
-            margin: 10px 0;
+            margin: 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .arrow span {
+            font-size: 13px;
+            font-weight: normal;
+            color: #64748b;
+            margin-top: 4px;
+            border: 1px solid #cbd5e1;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: #fff;
         }
 
         .flow-step {
@@ -120,67 +134,71 @@
 
 <body>
 
-    <h1>📊 全局数据流转分析 (Data Flow)</h1>
-    <p>这个章节将从全栈的角度，以上帝视角解剖一个名为 <strong>"xiaoming"</strong> 的表单是如何贯穿整个系统的五大核心仓库步骤：Frontend -> Backend -> R2/KV -> Worker
-        -> 物理浏览器的。</p>
+    <h1>📊 全端交互与数据流转 (Data Flow 实战图)</h1>
+    <p>这个章节将从全网的视角，解剖一个名为 <strong>"xiaoming"</strong> 的表单是如何在前后端之间进行交互，并贯穿整个基础设施 (KV/R2/Supabase/Worker) 的最终生成流程的。</p>
 
-    <h2>一、 数据的起飞流转全程</h2>
+    <h2>一场完美的生命周期旅程</h2>
 
     <div class="flow-step">
         <div class="flow-num">1</div>
         <div>
-            <strong>步骤 1：前端状态收集</strong><br>
-            <em>举例</em>：小明在 <code>RomanceSpace-Frontend</code> 用户端输入了自己与女友的参数信息，并点击“确认开通”：
+            <strong>生成请求发射 (Frontend UI 介入)</strong><br>
+            <em>动作</em>：小明在 <code>RomanceSpace-Frontend</code> 用户端输入了自己与女友的参数信息，并点击“确认开通”。前端唯一的任务就是把数据组合，向 Backend 发起通信！
         </div>
     </div>
 
     <div class="box" style="margin-left: 45px;">
-        <pre><code class="language-json">{
+        <pre><code class="language-javascript">// 前端 Fetch 调用举例
+const payload = {
   "subdomain": "xiaoming",
   "templateType": "classic_love",
-  "data": {
-    "me": "小明",
-    "you": "小红",
-    "startDate": "2024-01-01"
-  }
-}</code></pre>
+  "data": { "me": "小明", "you": "小红" }
+}
+fetch('https://api.885201314.xyz/api/project/render', { method: 'POST', body: JSON.stringify(payload) })</code></pre>
     </div>
 
-    <div class="arrow">⬇ 跨海传输 (HTTPS POST /api/project/render)</div>
+    <div class="arrow">⬇<span>(通信：HTTPS POST 跨海抵达 Backend VPS 服务器)</span></div>
 
     <div class="flow-step">
         <div class="flow-num">2</div>
         <div>
-            <strong>步骤 2：后端深度熔铸</strong><br>
-            <em>举例</em>：请求抵近 <code>RomanceSpace-Backend</code>（Node.js 服务器）。提取 R2 高清母版并在毫秒内组装：
+            <strong>算力中枢熔铸与多方入库 (Backend 处理)</strong><br>
+            <em>动作</em>：<code>RomanceSpace-Backend</code> 接收请求，成为绝对主力。<br>
+            - 它首先从 <strong>R2</strong> 下载 <code>classic_love</code> 模板。<br>
+            - 执行 CPU 密集型正则代码，将模板变为：<code>&lt;h1&gt;小明 爱 小红&lt;/h1&gt;</code> 的死静态 HTML 字符串。<br>
+            - <strong>调用 R2 接口</strong>：将被组装好的 HTML 文件传入 R2 (存入 <code>xiaoming.html</code>)。<br>
+            - <strong>调用 KV 接口</strong>：写入 <code>{ "xiaoming": "true" }</code> 的路由注册表。<br>
+            - <strong>调用 Supabase DB</strong>：用特权密钥，把小明填的原始表单存档在 Postgres 数据库中。
         </div>
     </div>
     <div class="box" style="margin-left: 45px;">
-        <p>组装后的静态结果被固定为：</p>
-        <pre><code class="language-html">&lt;h1&gt;小明 爱 小红&lt;/h1&gt;
-&lt;p&gt;我们在一起相爱了 99 天&lt;/p&gt;</code></pre>
+        <pre><code class="language-javascript">// 后端调用不同云端基础设施的 Node 伪代码范例
+await supabase.from('projects').insert({ id: 'xiaoming', raw_data: payload.data }); // 入库 Supabase
+await cloudflareKV.put('xiaoming', 'true'); // 增加路由记录至 KV
+await s3Client.send(new PutObjectCommand({ Bucket, Key: 'xiaoming.html', Body: generatedHtml })); // HTML 灌入 R2
+res.json({ success: true, url: "https://xiaoming.885201314.xyz" }) // 响应回 Frontend</code></pre>
     </div>
 
-    <div class="arrow">⬇ 资产沉淀 (S3 API & REST API)</div>
+    <div class="arrow">⬇<span>(物理分享：用户把生成的网址 https://xiaoming.885201314.xyz 发给了微信好友)</span></div>
 
     <div class="flow-step">
         <div class="flow-num">3</div>
         <div>
-            <strong>步骤 3：数据硬封印入库</strong><br>
-            <em>举例</em>：在底层：生成的文件存放于 <strong>R2 对象存储</strong> 的文件下。在 <strong>KV 系统</strong>写入 <code>xiaoming:有效</code>
-            确认。所有的配置原参数落库 <strong>Supabase</strong> 中实现安全沉淀。
+            <strong>极速网关拦截分配 (Worker CDN 响应)</strong><br>
+            <em>动作</em>：好友点开网址的一瞬间，直接撞上了 <code>RomanceSpace-Worker</code> 边缘网关。<br>
+            - 网关秒搜 <strong>KV 数据字典</strong>：问：“有 xiaoming 这个人的路由吗？” KV 说：“有！”<br>
+            - 网关掉头去 <strong>R2 存储器</strong> 捞出刚刚打出来的 <code>xiaoming.html</code> 文件。<br>
+            - 将网页原封不动丢回好友的浏览器，并且向 Cloudflare Cache 缓存该页面长达 1 小时，下次别人点开直接 0ms 返回。
         </div>
     </div>
 
-    <div class="arrow">⬇ 数千万人访问 (打开网址等于访问网关 Worker)</div>
-
-    <div class="flow-step">
-        <div class="flow-num">4</div>
-        <div>
-            <strong>步骤 4：极速分发与消费</strong><br>
-            <em>举例</em>：所有人打开 <code>https://xiaoming.885201314.xyz</code> 网址时，即直接访问了高速边缘网关
-            <code>RomanceSpace-Worker</code>。此时网关秒搜 KV 小本子确认小明存在，拿出 R2 里面的死静态文件交货并缓存 1 小时，扛住爆炸满载的流量冲击。
-        </div>
+    <div class="box" style="margin-left: 45px;">
+        <pre><code class="language-javascript">// Worker 处理访客的边缘读取逻辑
+const isValid = await env.ROMANCESPACE_KV.get('xiaoming'); // 读取 KV 
+if (isValid) {
+  const htmlFile = await env.ROMANCESPACE_R2.get('xiaoming.html'); // 读取 R2
+  return new Response(htmlFile.body, { headers: { "Content-Type": "text/html", "Cache-Control": "max-age=3600" }});
+}</code></pre>
     </div>
 
     <script>

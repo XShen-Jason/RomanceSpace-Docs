@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>核心工作原理 (图解)</title>
+  <title>架构与基础设施详情 (图解)</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -72,15 +72,6 @@
       padding: 0;
     }
 
-    blockquote {
-      background: #fdfae6;
-      border-left: 4px solid #f59e0b;
-      padding: 15px 20px;
-      margin: 20px 0;
-      border-radius: 4px;
-      color: #78350f;
-    }
-
     .card {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -99,28 +90,12 @@
       margin-right: 5px;
     }
 
-    .badge-vps {
-      background: #e11d48;
+    .badge-code {
+      background: #4f46e5;
     }
 
-    .badge-worker {
-      background: #f59e0b;
-    }
-
-    .badge-kv {
-      background: #3b82f6;
-    }
-
-    .badge-r2 {
+    .badge-infra {
       background: #ec4899;
-    }
-
-    .badge-cache {
-      background: #10b981;
-    }
-
-    .badge-templates {
-      background: #8b5cf6;
     }
 
     .note {
@@ -178,120 +153,118 @@
       border-color: #10b981;
       color: white;
     }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #334155;
+    }
   </style>
 </head>
 
 <body>
 
-  <h1>🚀 核心概念与工作原理 (基于 CQRS 读写分离)</h1>
+  <h1>🚀 架构与基础设施详情 (CQRS 深度解析)</h1>
 
-  <p>这是一个极度优化的高并发小网页分发平台（RomanceSpace）。为了能在近乎“免费”的前提下支撑极高的访问量，系统底层经过了 CQRS（命令查询职责分离）深度设计。</p>
+  <p>这是一个极度优化的高并发小网页分发平台（RomanceSpace）。由于我们需要在近乎“免费”的前提下支撑极高的 C 端访问量，系统底层经过了 CQRS（命令查询职责分离）深度设计。</p>
 
   <div class="note">
-    <strong>💡 重要提示：打开网址相当于访问 Worker！</strong><br>
-    用户的每一次访问（例如打开 <code>love.885201314.xyz</code>），流量第一时间都会打到 Cloudflare Worker 上，由网关决定是从缓存、还是 R2 返回最终页面。
+    <strong>💡 CQRS 核心理念：</strong><br>
+    写操作（生成网页，并发低但极其耗费 CPU）交给 Node.js VPS；<br>
+    读操作（查看网页，并发极高且只需 I/O）交给边缘节点 Cloudflare Worker。
   </div>
 
   <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
 
-  <h2>一、 五大核心组件与配置速查</h2>
-
-  <p>整个系统由 5 个核心仓库组装而成，职责清晰，绝不耦合：</p>
+  <h2>一、 三大基础设施 (Infrastructure) 核心解析</h2>
+  <p>底层数据不仅需要存储，还要应对极高并发的读取。我们组合了以下三大基石：</p>
 
   <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-templates">1. 模板资产仓</span> 独立资源库</h3>
-    <p><strong>核心配置：</strong> 模板内部的 <code>schema.json</code>，负责定义要给用户展示哪些输入框。</p>
-    <p><strong>通俗比喻：</strong> 专门存放“未署名贺卡”的仓库，随时准备被拿去加工。</p>
+    <h3 style="margin-top:0;"><span class="badge badge-infra">1. Cloudflare KV</span> 极速键值对路由簿</h3>
+    <ul>
+      <li><strong>存放什么：</strong> 存放全网所有子域名的路由状态，例如 <code>{"xiaoming": "active"}</code>。</li>
+      <li><strong>如何交互：</strong><br> - <strong>Backend (写)：</strong> 使用 Cloudflare API 强行写入新用户的注册态。<br> - <strong>Worker
+          (读)：</strong> 每个访客打开网页时，Worker 瞬间通过 <code>env.ROMANCESPACE_KV.get()</code> 确认该域名存在，耗时 &lt; 10ms。</li>
+    </ul>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-vps">2. VPS 后端</span> 核心中央流水线</h3>
-    <p><strong>核心配置：</strong> 根目录的 <code>.env</code> 文件，存放数据库密钥 (<code>SUPABASE_SERVICE_ROLE_KEY</code>) 与 R2 访问权。</p>
-    <p><strong>通俗比喻：</strong> 公司的核心工厂。接收创建请求，将半成品模板和用户数据拼接成最终的静态 HTML。</p>
+    <h3 style="margin-top:0;"><span class="badge badge-infra">2. Cloudflare R2</span> 海量对象存储</h3>
+    <ul>
+      <li><strong>存放什么：</strong> 存放 Backend 渲染出来的 <strong>纯静态 HTML 文件</strong>，以及模板的公共图片、CSS
+        资产（<code>project_xiaoming.html</code>）。</li>
+      <li><strong>如何交互：</strong><br> - <strong>Backend (写)：</strong> 通过标准 AWS S3 SDK (<code>PutObjectCommand</code>)
+        把算好的代码扔进仓库。<br> - <strong>Worker (读)：</strong> 如果 KV 确认域名存在，Worker 直接通过 <code>env.ROMANCESPACE_R2.get()</code>
+        把静态文件拿出来展示。</li>
+    </ul>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-worker">3. CF Worker</span> 全球分发门卫</h3>
-    <p><strong>核心配置：</strong> <code>wrangler.toml</code>，用于绑定 KV 与 R2 存储桶以便拥有读取权。</p>
-    <p><strong>通俗比喻：</strong> 遍布全球的前台接待员，只负责拦截请求并“去仓库拿写好的 HTML 网页”。</p>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-kv">4. KV & R2 资源存放</span> 登记处与大仓库</h3>
-    <p><strong>核心配置：</strong> 都在 Cloudflare 控制台直接分配的命名空间与存储桶。</p>
-    <p><strong>通俗比喻：</strong> KV 是一本小本子。里面只写谁开通了网页；R2 则是放静态 HTML 文件的大型免费仓库。</p>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-cache">5. 前端 UI 仓</span> 业务入口</h3>
-    <p><strong>核心配置：</strong> <code>.env</code> 文件里的 <code>VITE_API_BASE_URL</code> 指向后端 API。</p>
-    <p><strong>通俗比喻：</strong> 放在门外的填写表单系统，与纯呈现文档网站一起构成了系统的外貌。</p>
+    <h3 style="margin-top:0;"><span class="badge badge-infra">3. Supabase</span> 关系型核心数据库</h3>
+    <ul>
+      <li><strong>存放什么：</strong> 存放用户填写的原始表单数据、订单记录、核心账号信息。</li>
+      <li><strong>如何交互：</strong><br> - <strong>Backend (读/写)：</strong> 接收到前端数据后，Backend 使用
+        <code>@supabase/supabase-js</code> 服务端特权密钥，安全持久化这些订单记录。Worker 和 Frontend <strong>绝不</strong>触碰 Supabase！</li>
+    </ul>
   </div>
 
   <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
 
-  <h2>二、 核心工作流程（图解与示例）</h2>
+  <h2>二、 四大执行仓库 (Repositories) 职责清单</h2>
 
-  <p>我们将整个系统拆解为三个步骤，完美展现 CQRS 的 <strong>写算力集中化</strong> 和 <strong>读算力边缘化</strong>：</p>
-
-  <div class="flow-step">
-    <div class="flow-num">1</div>
-    <div>
-      <strong>第一步：开发者上传模板</strong><br>
-      <em>举例</em>：开发者小李把名为 <code>flower_theme</code> 的模板推送到了 Git，系统将其同步至 R2 成为公用资产。
-    </div>
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-code">1. RomanceSpace-Frontend (React)</span></h3>
+    <p><strong>核心动作：收集与呼叫。</strong></p>
+    <p>提供让用户填表买单的 UI。收集到 <code>{name: "小明", type: "love"}</code> 后，通过 <code>fetch(API_URL)</code> 将数据 <code>POST</code>
+      给 Backend。自己从不保存任何状态。</p>
   </div>
 
-  <div class="flow-step">
-    <div class="flow-num">2</div>
-    <div>
-      <strong>第二步：主平台开通专属页面 (强写链路)</strong><br>
-      <em>举例</em>：小明在前端填上“我爱你”，后端接收后，经过复杂字符串拼接生成 <code>xiaoming.html</code> 并推送到 R2 仓库保存。同时在 KV
-      写下：<code>xiaoming 已激活</code>。
-    </div>
-  </div>
-  <pre><code>// 这是一个简易的核心数据结构样例
-const submitData = {
-  template: "flower_theme",
-  data: { lover: "小红", text: "我爱你" }
-};</code></pre>
-
-  <div class="flow-step">
-    <div class="flow-num">3</div>
-    <div>
-      <strong>第三步：访客高速阅读 (极速读链路)</strong><br>
-      <em>举例</em>：几万人打开 <code>xiaoming.885201314.xyz</code> 时，流量直达 Worker。Worker 查 KV 确认有小明后，转身去 R2 拿出
-      <code>xiaoming.html</code>，交给缓存并在之后 1 小时内直接用缓存扛并发。
-    </div>
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-code">2. RomanceSpace-Backend (Node.js VPS)</span></h3>
+    <p><strong>核心动作：重体力计算与数据入库。</strong></p>
+    <p>接客后：（1）从 R2 拉取空模板；（2）跑正则匹配把“小明”印到 HTML 里；（3）把新 HTML 写入 R2；（4）把路由特征写入 KV；（5）把订单账单写入 Supabase。一人包揽所有 <strong>写
+        (Write)</strong> 操作，所以它需要最高权限的 <code>.env</code> 密钥。</p>
   </div>
 
-  <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-code">3. RomanceSpace-Worker (边缘网关)</span></h3>
+    <p><strong>核心动作：极速拦访问与取货。</strong></p>
+    <p>运行在 Cloudflare V8 引擎上。当几万人打开 <code>xiaoming.885201314.xyz</code> 时，流量全打在它身上。它只查 KV 判断有没有这个人，如果有，去 R2
+      拿出成品丢给访客。它包揽所有的 <strong>读 (Read)</strong> 操作，绝无越权修改。</p>
+  </div>
 
-  <h2>三、 总结</h2>
-
-  <p>CQRS 把读和写完全拆解：</p>
-  <ul>
-    <li><strong>写（Write）</strong>由于并发量低、计算复杂，交由独立自主的 Node.js VPS 后端稳扎稳打。</li>
-    <li><strong>读（Read）</strong>由于并发量极高、计算几乎没有，交由 Cloudflare Worker 从 R2 提取缓存给全世界。</li>
-  </ul>
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-code">4. RomanceSpace-Templates (纯静态资产)</span></h3>
+    <p><strong>核心动作：提供模板蓝本。</strong></p>
+    <p>存放前端小哥手写的纯正 HTML/CSS 骨架和 <code>schema.json</code>。由独立脚本一键上传直指 R2。Backend 在渲染时拿这里的内容抄底。</p>
+  </div>
 
   <script>
     document.querySelectorAll('pre').forEach(pre => {
       const btn = document.createElement('button');
       btn.className = 'copy-btn';
       btn.innerText = '复制';
-
       btn.addEventListener('click', () => {
-        let text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+        let codeEl = pre.querySelector('code');
+        let text = codeEl ? codeEl.innerText : pre.innerText;
         text = text.replace(/^复制\n/, '');
-
         navigator.clipboard.writeText(text).then(() => {
           btn.innerText = '已复制!';
           btn.classList.add('copied');
-          setTimeout(() => {
-            btn.innerText = '复制';
-            btn.classList.remove('copied');
-          }, 2000);
+          setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
         });
       });
       pre.appendChild(btn);

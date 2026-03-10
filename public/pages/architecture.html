@@ -195,20 +195,30 @@
   <div class="card">
     <h3 style="margin-top:0;"><span class="badge badge-infra">1. Cloudflare KV</span> 极速键值对路由簿</h3>
     <ul>
-      <li><strong>存放什么：</strong> 存放全网所有子域名的路由状态，例如 <code>{"xiaoming": "active"}</code>。</li>
-      <li><strong>如何交互：</strong><br> - <strong>Backend (写)：</strong> 使用 Cloudflare API 强行写入新用户的注册态。<br> - <strong>Worker
-          (读)：</strong> 每个访客打开网页时，Worker 瞬间通过 <code>env.ROMANCESPACE_KV.get()</code> 确认该域名存在，耗时 &lt; 10ms。</li>
+      <li><strong>存放什么：</strong> 存放全网所有子域名的<strong>前缀标识</strong>（非完整域名）。存储格式并非单纯的布尔值，而是一段极其精简的 JSON 元数据，例如存入
+        <code>{"xiaoming": {"status": 1, "template": "classic_love"}}</code>。
+        <br><em>注：<code>status: 1</code> 代表正常，若是被系统封禁则改为 <code>0</code> 供边缘网关瞬间拦截。</em>
+      </li>
+      <li><strong>如何交互：</strong><br> - <strong>Backend (写)：</strong> 使用 Cloudflare API 强行写入新用户的前缀态与基础设置。<br> -
+        <strong>Worker
+          (读)：</strong> 每个访客打开网页时，Worker 瞬间提取网址前缀，通过 <code>env.ROMANCESPACE_KV.get('xiaoming', {type: 'json'})</code>
+        确认该前缀存在且合法，耗时 &lt;
+        10ms。</li>
     </ul>
   </div>
 
   <div class="card">
     <h3 style="margin-top:0;"><span class="badge badge-infra">2. Cloudflare R2</span> 海量对象存储</h3>
     <ul>
-      <li><strong>存放什么：</strong> 存放 Backend 渲染出来的 <strong>纯静态 HTML 文件</strong>，以及模板的公共图片、CSS
-        资产（<code>project_xiaoming.html</code>）。</li>
+      <li><strong>存放什么：</strong> 存放 Backend 渲染出来的 <strong>纯静态 HTML 文件</strong>，文件名同样基于<strong>域名前缀</strong>严格对应（如
+        <code>xiaoming.html</code>），以及模板的公共图片、CSS
+        资产。
+      </li>
       <li><strong>如何交互：</strong><br> - <strong>Backend (写)：</strong> 通过标准 AWS S3 SDK (<code>PutObjectCommand</code>)
-        把算好的代码扔进仓库。<br> - <strong>Worker (读)：</strong> 如果 KV 确认域名存在，Worker 直接通过 <code>env.ROMANCESPACE_R2.get()</code>
-        把静态文件拿出来展示。</li>
+        把算好的代码以 <code>[前缀].html</code> 扔进仓库。<br> - <strong>Worker (读)：</strong> 如果 KV 确认前缀存在，Worker 直接拼出文件名
+        <code>env.ROMANCESPACE_R2.get('xiaoming.html')</code>
+        把静态文件拿出来展示。
+      </li>
     </ul>
   </div>
 
@@ -217,7 +227,21 @@
     <ul>
       <li><strong>存放什么：</strong> 存放用户填写的原始表单数据、订单记录、核心账号信息。</li>
       <li><strong>如何交互：</strong><br> - <strong>Backend (读/写)：</strong> 接收到前端数据后，Backend 使用
-        <code>@supabase/supabase-js</code> 服务端特权密钥，安全持久化这些订单记录。Worker 和 Frontend <strong>绝不</strong>触碰 Supabase！</li>
+        <code>@supabase/supabase-js</code> 服务端特权密钥，安全持久化这些订单记录。Worker 和 Frontend <strong>绝不</strong>触碰 Supabase！
+      </li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-infra" style="background: #0ea5e9;">4. API 旁路由
+        (api.885201314.xyz)</span> 独立通信管道</h3>
+    <ul>
+      <li><strong>作用与定位：</strong> 这是一个被刻意独立出来的 API 旁路由，直接由 Cloudflare DNS 代理指向纯净的 VPS 服务器层，它<strong>不走 Worker
+          边缘网关的逻辑</strong>（因为 Worker 是用来分发和展现 C 端网页的）。</li>
+      <li><strong>如何调用：</strong> 前端代码中的 <code>VITE_API_BASE_URL</code> 指向的就是它。<br>所有的请求都是以
+        <code>api.885201314.xyz/api/...</code> 开头的设计风格（例如：<code>/api/project/render</code>）。您必须带上后面的 <code>/api</code>
+        路径层级，因为这是 Express 后端设定的路由规则体系，能更好的进行版本控制 (如未来演进为 <code>/api/v2/...</code>)。
+      </li>
     </ul>
   </div>
 

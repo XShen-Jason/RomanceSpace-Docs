@@ -142,13 +142,16 @@
     <div class="flow-step">
         <div class="flow-num">1</div>
         <div>
-            <strong>生成请求发射 (Frontend UI 介入)</strong><br>
-            <em>动作</em>：小明在 <code>RomanceSpace-Frontend</code> 用户端输入了自己与女友的参数信息，并点击“确认开通”。前端唯一的任务就是把数据组合，向 Backend 发起通信！
+            <strong>生成请求与校验发射 (Frontend UI 介入)</strong><br>
+            <em>动作</em>：小明在 <code>RomanceSpace-Frontend</code> 用户端输入了自己与女友的参数信息（包括心仪的前缀
+            <code>xiaoming</code>），并点击“确认开通”。<br>
+            <em>校验流程</em>：Frontend 立即向 Backend 发送校验查重请求。Backend 会内部调用 KV 或查库，确认该前缀是否已被他人占用。如果没有被占用，则继续后续提交流程。
         </div>
     </div>
 
     <div class="box" style="margin-left: 45px;">
         <pre><code class="language-javascript">// 前端 Fetch 调用举例
+// 目标地址为独立解析的 API 旁路由，且由于后端 Express 控制器规约，必须带有 /api 路径前缀
 const payload = {
   "subdomain": "xiaoming",
   "templateType": "classic_love",
@@ -166,17 +169,24 @@ fetch('https://api.885201314.xyz/api/project/render', { method: 'POST', body: JS
             <em>动作</em>：<code>RomanceSpace-Backend</code> 接收请求，成为绝对主力。<br>
             - 它首先从 <strong>R2</strong> 下载 <code>classic_love</code> 模板。<br>
             - 执行 CPU 密集型正则代码，将模板变为：<code>&lt;h1&gt;小明 爱 小红&lt;/h1&gt;</code> 的死静态 HTML 字符串。<br>
-            - <strong>调用 R2 接口</strong>：将被组装好的 HTML 文件传入 R2 (存入 <code>xiaoming.html</code>)。<br>
-            - <strong>调用 KV 接口</strong>：写入 <code>{ "xiaoming": "true" }</code> 的路由注册表。<br>
-            - <strong>调用 Supabase DB</strong>：用特权密钥，把小明填的原始表单存档在 Postgres 数据库中。
+            - <strong>调用 R2 接口</strong>：将被组装好的 HTML 文件以<strong>前缀命名</strong>传入 R2 (精准存入 <code>xiaoming.html</code>)。<br>
+            - <strong>调用 KV 接口</strong>：写入 <code>{ "xiaoming": "true" }</code> 的前缀路由注册表（<strong>注意，KV与R2只存前缀标识
+                <code>xiaoming</code>，不存长域名</strong>）。<br>
+            - <strong>调用 Supabase DB</strong>：用特权密钥，把小明填的原始表单存档在 Postgres 数据库中。<br><br>
+            <strong style="color: #d97706;">💰 API 额度与开销揭秘 (Free Tier)：</strong><br>
+            每次创建或修改网站，Backend 只会消耗极小的云厂商免费额度：<br>
+            ✅ <strong>1 次 R2 Class A 操作</strong>（写入 1 个文件。免费额度 100万次/月）。<br>
+            ✅ <strong>1 次 KV Write 操作</strong>（写 1 条路由。免费额度 10万次/月，非常够用）。<br>
+            正因为写入频率远低于每天成千上万的访客阅读（Read），我们才将昂贵的 Write 操作严格收口在 VPS 后端，避免浪费 Worker 请求费。
         </div>
     </div>
     <div class="box" style="margin-left: 45px;">
         <pre><code class="language-javascript">// 后端调用不同云端基础设施的 Node 伪代码范例
-await supabase.from('projects').insert({ id: 'xiaoming', raw_data: payload.data }); // 入库 Supabase
-await cloudflareKV.put('xiaoming', 'true'); // 增加路由记录至 KV
-await s3Client.send(new PutObjectCommand({ Bucket, Key: 'xiaoming.html', Body: generatedHtml })); // HTML 灌入 R2
-res.json({ success: true, url: "https://xiaoming.885201314.xyz" }) // 响应回 Frontend</code></pre>
+// 每次修改仅触发 1x Supabase 插入，1x KV 写入，1x R2 覆盖
+await supabase.from('projects').insert({ id: 'xiaoming', raw_data: payload.data }); 
+await cloudflareKV.put('xiaoming', 'true'); 
+await s3Client.send(new PutObjectCommand({ Bucket, Key: 'xiaoming.html', Body: generatedHtml })); 
+res.json({ success: true, url: "https://xiaoming.885201314.xyz" }) </code></pre>
     </div>
 
     <div class="arrow">⬇<span>(物理分享：用户把生成的网址 https://xiaoming.885201314.xyz 发给了微信好友)</span></div>
@@ -194,9 +204,12 @@ res.json({ success: true, url: "https://xiaoming.885201314.xyz" }) // 响应回 
 
     <div class="box" style="margin-left: 45px;">
         <pre><code class="language-javascript">// Worker 处理访客的边缘读取逻辑
-const isValid = await env.ROMANCESPACE_KV.get('xiaoming'); // 读取 KV 
+// 1. 获取请求域名并提取前缀 (xiaoming.885201314.xyz -> xiaoming)
+const prefix = "xiaoming";
+// 2. 凭借前缀直击 KV 与 R2
+const isValid = await env.ROMANCESPACE_KV.get(prefix); // 读取 KV: xiaoming 
 if (isValid) {
-  const htmlFile = await env.ROMANCESPACE_R2.get('xiaoming.html'); // 读取 R2
+  const htmlFile = await env.ROMANCESPACE_R2.get(`${prefix}.html`); // 读取 R2: xiaoming.html
   return new Response(htmlFile.body, { headers: { "Content-Type": "text/html", "Cache-Control": "max-age=3600" }});
 }</code></pre>
     </div>

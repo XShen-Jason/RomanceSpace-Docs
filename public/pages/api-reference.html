@@ -215,18 +215,24 @@
 
 <body>
 
-    <h1>🗄️ 开通与修改专属网页 API 详细文档</h1>
+    <h1>🗄️ 后端核心 API 开发规范 (Backend API Spec)</h1>
 
-    <p>由于优化了底层架构，现在无论是启用域名、首次使用模板，还是修改资料，<strong>均统一调用同一个后端的写入接口</strong>。只要用户点击生成，系统便会在后台重新向 R2 仓库覆盖新的专属 HTML。</p>
+    <p>做为即将在 <code>RomanceSpace-Backend</code> 仓库中大展身手的后端开发者，你需要实现并暴露以下核心接口。所有的前端 UI 表单最终都会汇总为对下述
+        <strong>万能熔铸接口</strong>
+        的书面诉求。
+    </p>
 
     <div class="note">
-        <strong>💡 核心配置提醒：</strong> 在 <code>RomanceSpace-Frontend</code> 中，你需要将 <code>VITE_API_BASE_URL</code> 设定为你的 VPS
-        后端地址。而此处的 <code>POST</code> 交互正是一切的开始。打开生成的网页链接相当于直接访问网关 Worker。
+        <strong>💡 接口职责提醒：</strong> 你的 <code>/api/project/render</code> 接口不仅要返回成功信号，内部还需要顺序或并发执行：<br>
+        1. 读取 R2 获取模板骨架。<br>
+        2. 正则拼装生成最终 HTML 并写回 R2。<br>
+        3. 写入 Cloudflare KV 标记路由存活状态 (<code>status: 1</code>)。<br>
+        4. 写入 Supabase 永久存档用户的配置流水。
     </div>
 
     <hr style="border: 0; border-top: 1px solid #eee; margin: 40px 0;">
 
-    <h2>核心接口详情 ⚙️</h2>
+    <h2>核心接口：生成与更新项目全能王 ⚙️</h2>
 
     <div class="endpoint">
         <div class="endpoint-url">
@@ -236,7 +242,7 @@
         <button class="copy-btn copy-url">复制链接</button>
     </div>
 
-    <h3>公共参数说明</h3>
+    <h3>1. 请求参数 (Request Body - <code>application/json</code>)</h3>
     <table>
         <tr>
             <th>参数名</th>
@@ -248,94 +254,194 @@
             <td><code>subdomain</code></td>
             <td>String</td>
             <td><span class="req-tag">必须</span></td>
-            <td>分配给该用户的专属三级域名前缀。例：传 <code>xiaoming</code> = <code>xiaoming.885201314.xyz</code></td>
+            <td>申请的专属三级域名前缀。必须是全小写字母或数字的组合，如 <code>xiaoming</code>。后端需负责校验查重。</td>
         </tr>
         <tr>
             <td><code>type</code></td>
             <td>String</td>
             <td><span class="req-tag">必须</span></td>
-            <td>使用的模板代号（如 <code>love_letter</code>）。必须是已被上传到系统的模板名。</td>
+            <td>使用的模板代号（如 <code>love_letter</code>）。后端需去 R2 拉取该模板对应的源文件 <code>[type]/index.html</code>。</td>
         </tr>
         <tr>
             <td><code>data</code></td>
             <td>Object</td>
-            <td><span class="opt-tag">可选</span></td>
-            <td>注入模板的具体数据（不同场景传入不同的数据内容）。</td>
+            <td><span class="opt-tag">必须</span></td>
+            <td>注入该模板的详细业务数据（JSON 对象，不可随意捏造，需严格吻合模板的 schema 设定）。</td>
         </tr>
     </table>
 
-    <hr style="border: 0; border-top: 1px solid #eee; margin: 40px 0;">
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('req-fetch', this)">🎨 前端发起 Fetch 示例 (请求桩)</div>
+    </div>
+    <div id="req-fetch" class="tab-content active">
+        <pre><code>// 无论用户是首次开通还是二次修改，统统 POST 这个万能 Payload
+const payload = {
+  "subdomain": "xiaoming",
+  "type": "classic_love",
+  "data": { 
+    "names": ["小明", "红红"], 
+    "startDate": "2023-01-01",
+    "background_music": "https://..."
+  }
+};
 
-    <h2>操作流程举例</h2>
+const response = await fetch("https://api.885201314.xyz/api/project/render", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload)
+});</code></pre>
+    </div>
 
+    <h3>2. 后端服务端预期处理流程 (内部流转)</h3>
     <div class="flow-step">
         <div class="flow-num">1</div>
         <div>
-            <strong>步骤 1：仅启用域名 (不传数据)</strong><br>
-            <em>举例</em>：小明刚注册但没填内容，发起一个空数据请求以呈现空网页：
+            <strong>参数防灾校验：</strong>使用 Zod 或 Joi 查验传入的格式；查验 KV 该前缀是否属于当前用户/尚未被抢注。
         </div>
     </div>
-
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('scene1-curl', this)">cURL 示例</div>
-        <div class="tab" onclick="switchTab('scene1-fetch', this)">Fetch 示例</div>
-    </div>
-    <div id="scene1-curl" class="tab-content active">
-        <pre><code>curl -X POST https://api.885201314.xyz/api/project/render \
-  -H "Content-Type: application/json" \
-  -d '{
-    "subdomain": "xiaoming",
-    "type": "anniversary",
-    "data": {}
-  }'</code></pre>
-    </div>
-    <div id="scene1-fetch" class="tab-content">
-        <pre><code>const response = await fetch("https://api.885201314.xyz/api/project/render", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    subdomain: "xiaoming",
-    type: "anniversary",
-    data: {} 
-  })
-});</code></pre>
-    </div>
-
     <div class="flow-step">
         <div class="flow-num">2</div>
         <div>
-            <strong>步骤 2：填充与覆盖自定义数据</strong><br>
-            <em>举例</em>：小红填写了数据提交，后端接收后替换上一步的空内容网页，实现了刷新与覆盖：
+            <strong>并行外联动作：</strong><br>
+            - <strong>R2 操作：</strong> 调用 S3 Client，将合成后的纯净 HTML (`generatedHtml`) `PutObject` 进存储桶，键名为
+            <code>xiaoming.html</code>。<br>
+            - <strong>KV 操作：</strong> 写入 <code>{"xiaoming": {"status": 1, "template": "classic_love"}}</code>。<br>
+            - <strong>Supabase 操作：</strong> 将整个 <code>payload</code> 序列化为 JSON 塞入关系库长期留档。
         </div>
     </div>
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('scene2-curl', this)">cURL 示例</div>
-        <div class="tab" onclick="switchTab('scene2-fetch', this)">Fetch 示例</div>
-    </div>
-    <div id="scene2-curl" class="tab-content active">
-        <pre><code>curl -X POST https://api.885201314.xyz/api/project/render \
-  -H "Content-Type: application/json" \
-  -d '{
-    "subdomain": "xiaoming",
-    "type": "anniversary",
-    "data": { 
-      "names": ["小明", "红红"], 
-      "startDate": "2023-01-01" 
-    }
-  }'</code></pre>
-    </div>
-    <div id="scene2-fetch" class="tab-content">
-        <pre><code>const response = await fetch("https://api.885201314.xyz/api/project/render", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    subdomain: "xiaoming",
-    type: "anniversary",
-    data: { names: ["小明", "红红"], startDate: "2023-01-01" }
-  })
-});</code></pre>
+
+    <h3>3. 多场景请求与响应范例集 (Use Cases & Responses)</h3>
+    <p>为了保证前后端对接的严谨性，以下列出了 3 种最核心的交互场景及其标准的 JSON 响应对照：</p>
+
+    <div class="card" style="margin-top: 20px;">
+        <h4 style="margin-top: 0; color: #16a34a;">✅ 场景 A-1：零号起步 (首次领用免费域名并绑定模板)</h4>
+        <p><strong>业务说明：</strong>新用户注册后，首次抢占了 <code>xiaoming</code> 这个前缀，并选择了一个基础模板
+            <code>classic_love</code>，填入了初次见面的数据。
+        </p>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('res-success1-req', this)">前端 Payload</div>
+        </div>
+        <div id="res-success1-req" class="tab-content active">
+            <pre><code>{
+  "subdomain": "xiaoming", // 后端查 KV 发现该名字为空，允许通过，并绑定给该用户ID！
+  "type": "classic_love",  
+  "data": { "names": ["小明", "红红"], "startDate": "2023" }
+}</code></pre>
+        </div>
     </div>
 
+    <div class="card" style="margin-top: 20px;">
+        <h4 style="margin-top: 0; color: #16a34a;">✅ 场景 A-2：喜新厌旧 (不换域名，仅更换整个模板)</h4>
+        <p><strong>业务说明：</strong>小明觉得原模板不好看，保留 <code>xiaoming</code> 的域名，但要求更换为高级的 <code>3d_gallery</code>
+            模板。<strong>此操作需耗费大量 VPS 性能拉去新模板。</strong></p>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('res-success2-req', this)">前端 Payload</div>
+        </div>
+        <div id="res-success2-req" class="tab-content active">
+            <pre><code>{
+  "subdomain": "xiaoming", // 后端查全表证实身份：该前缀确实一直属于小明自己，放行！
+  "type": "3d_gallery",    // 【产生变更】Backend 将去 R2 重新拉取 3d_gallery 的骨架
+  "data": { "images": ["url1", "url2"] }
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <h4 style="margin-top: 0; color: #16a34a;">✅ 场景 A-3：小修小补 (不换域名不换模板，仅修改内容字句)</h4>
+        <p><strong>业务说明：</strong>小明和红红放假去玩了，只想替换其中一张照片或更新一下恋爱天数，模板依旧是 <code>3d_gallery</code>。</p>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('res-success3-req', this)">前端 Payload</div>
+        </div>
+        <div id="res-success3-req" class="tab-content active">
+            <pre><code>{
+  "subdomain": "xiaoming", // 身份验证通过
+  "type": "3d_gallery",    // 模板没变
+  "data": { "images": ["url1", "url_new_trip"] } // 【产生变更】仅仅是 data 载荷里的某个字段改变了
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <h4 style="margin-top: 0; color: #dc2626;">❌ 场景 B：域名前缀被他人抢注 (HTTP 400)</h4>
+        <p><strong>前置条件：</strong>表单里的 <code>xiaoming</code> 已经在 KV 中被别人占用了。后端在执行第一步查重时就拦截退回。</p>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('res-collision-req', this)">前端 Payload</div>
+            <div class="tab" onclick="switchTab('res-collision-res', this)">后端 Response</div>
+        </div>
+        <div id="res-collision-req" class="tab-content active">
+            <pre><code>{
+  "subdomain": "xiaoming", // 该前缀已存在且属于另一个用户ID
+  "type": "classic_love",
+  "data": {}
+}</code></pre>
+        </div>
+        <div id="res-collision-res" class="tab-content">
+            <pre><code>{
+  "code": 4010,
+  "message": "该域名前缀已被他人抢先使用，请更换试试哦",
+  "data": null
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <h4 style="margin-top: 0; color: #d97706;">⚠️ 场景 C：参数格式遗漏或违规 (HTTP 400)</h4>
+        <p><strong>前置条件：</strong>前端漏传了必填的 <code>type</code>，或者 <code>subdomain</code> 包含了中文等不合法字符。后端 Zod/Joi 校验失败。</p>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('res-invalid-req', this)">前端 Payload</div>
+            <div class="tab" onclick="switchTab('res-invalid-res', this)">后端 Response</div>
+        </div>
+        <div id="res-invalid-req" class="tab-content active">
+            <pre><code>{
+  "subdomain": "小明", // 中文不符合域名规范
+  "data": {} // 漏传了 type 字段
+}</code></pre>
+        </div>
+        <div id="res-invalid-res" class="tab-content">
+            <pre><code>{
+  "code": 4001,
+  "message": "参数校验失败: 'subdomain' 只能包含小写字母和数字, 'type' 为必填项",
+  "data": null
+}</code></pre>
+        </div>
+    </div>
+
+
+    <hr style="border: 0; border-top: 1px solid #eee; margin: 40px 0;">
+
+    <h2>💎 商业化与配额架构建议 (VIP Monetization & Limits)</h2>
+    <p>结合您所使用的 <strong>Cloudflare 免费额度 (Free Tier)</strong> 以及 <strong>Node.js VPS
+            的单机计算性能</strong>，我们在设计后端的扣费/计次拦截逻辑时，强烈建议采用以下策略：</p>
+
+    <div class="card">
+        <h4 style="margin-top: 0; color: #6d28d9;">1. 域名配额管控 (控制 KV 记录泛滥)</h4>
+        <ul>
+            <li><strong>免费限制：</strong>系统强制默认，一个注册账号<strong>仅限绑定 1 个</strong>自定义免费前缀（如 <code>xiaoming</code>）。</li>
+            <li><strong>多余域名增购：</strong>如果用户还想给别的女生建网页，必须付费解锁第 2、第 3 个额度。</li>
+            <li><strong>技术依据：</strong>CF 的 KV 虽然免费读取无限，但免费的 <code>Write</code> 请求只有
+                <strong>10万次/月</strong>。死死限制单个账户的新增域名数量，可以彻底杜绝恶意刷爆你的 KV 额度，保证 10万次全用于真实的优质付费用户上。</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h4 style="margin-top: 0; color: #6d28d9;">2. 更换模板/修改数据的频次管控 (保护 VPS 性能)</h4>
+        <ul>
+            <li><strong>免费限制：</strong>普通用户“修改内容”或“更换模板”（即调用上方 API 的操作），可以限制为 <strong>每月/每天 3 次或 5 次</strong> 免费生成机会。
+            </li>
+            <li><strong>VIP 会员特权：</strong>开通 VIP 月卡，可以享受 <strong>每月 100 次</strong> 或无限次的重新生成修改特权。</li>
+            <li><strong>技术依据：</strong>由于每次切换模板，您的 VPS 都要跑去 R2 拉取空壳并执行一次 CPU RegEx 正则替换运算，如果几万人同时高频点击“切换模板”，普通的 2 核 4G
+                VPS 会瞬间 CPU 100% 宕机。同时，R2 的 <code>PutObject</code> 操作每月免费只有 <strong>100万次</strong>，计次收费能够有效防 DDOS
+                和恶意并发消耗。</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h4 style="margin-top: 0; color: #6d28d9;">3. 废弃域名的回收机制 (避免幽灵占坑)</h4>
+        <ul>
+            <li>为了防止前缀被无限占用，后端数据库 Supabase 中应该有 <code>last_login_at</code> 或 <code>expired_at</code> 的设计。</li>
+            <li>对于免费账户长达半年不登录的“僵尸前缀”，写一个定时任务跑批处理，去 KV 中将它的 <code>status</code> 设为 0，并释放名字给他人购买，实现资产盘活。</li>
+        </ul>
+    </div>
 
     <script>
         // 切换选项卡

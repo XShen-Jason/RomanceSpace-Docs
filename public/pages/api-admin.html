@@ -165,17 +165,17 @@
     <p><strong>作用：</strong>一键发布新模板。要求上传 <code>FormData</code>（含 `templateName`, `index.html`, `schema.json`
         及其他配套资源），后端直接秒切资源树到 R2。</p>
 
-    <h2>三、 后台系统规划 (Admin Dashboard)</h2>
+    <h2>三、 已集成的可视化后台 (Admin Dashboard)</h2>
 
     <div class="note">
-        <strong>💡 可视化模板上传后台在哪里？</strong><br>
-        现在我们只有接口（`api/template/upload`），还没有给运营人员点“上传”的按钮。<br><br>
-        <strong>规划建议：</strong>不建议单独再开一个 Github 仓库写后台（增加维护成本），直接集成在 <strong>RomanceSpace-Frontend</strong> 里面！<br>
-        1. <strong>路由设计：</strong> 在前端新增一条隐藏路由 <code>/admin/dashboard</code>。<br>
-        2. <strong>鉴权设计：</strong> 进入页面弹出一个密码输入框，本地 <code>localStorage</code> 记住密码。每次发请求自动在 Header 挂上
-        <code>X-Admin-Key</code>。<br>
-        3. <strong>上传区域：</strong> 一个简单的拖拽上传框。运营把做好的模板 HTML/CSS 打包或者多选文件扔进去，填入模板名字 <code>love_v2</code>，点击“一键发版”，前端组装
-        <code>FormData</code> 抛给后端 API。
+        <strong>💡 运营人员上传模板入口：</strong><br>
+        为了方便非技术人员发版，可视化管理后台已无缝集成在 <strong>RomanceSpace-Frontend</strong> 主站中。<br><br>
+        <strong>使用流程：</strong><br>
+        1. <strong>访问入口：</strong> 浏览器访问隐藏路由 <code>https://www.885201314.xyz/admin/upload</code>。<br>
+        2. <strong>免密鉴权：</strong> 首次进入需输入 <code>X-Admin-Key</code> 密码，成功后浏览器自动记忆，后续发版长期免密。<br>
+        3. <strong>一键发布：</strong> 在拖拽区域放入模板的 <code>index.html</code>、<code>schema.json</code> 及其配套图片资源，输入模板名称（如
+        <code>love_v2</code>），点击发版即可。<br>
+        4. <strong>高速通道：</strong> 前端无需经过 Github，直接将文件打包直传 VPS 后端，并在上传成功后自动清除后端的缓存，前台用户秒级可见最新上线的模板。
     </div>
 
 </body>

@@ -100,7 +100,8 @@
 
     <h1>🧑‍💻 新模板开发与自动化部署指南 (笔记)</h1>
     <p>本指南面向想要为系统贡献新网页样式的切图仔。系统第五大独立仓库 <code>RomanceSpace-Templates</code> 没有任何复杂的构建工具，纯手工打造。它的灵魂在于一份名为
-        <code>schema.json</code> 的“使用说明书”。</p>
+        <code>schema.json</code> 的“使用说明书”。
+    </p>
 
     <div class="note">
         <strong>💡 为什么强调脱离构建工具？ (分析)</strong><br>
@@ -151,16 +152,41 @@
   ]
 }</code></pre>
 
-    <h2>二、 推向线上 (自动化部署)</h2>
+    <h2>二、 推向线上 (两套部署方案)</h2>
 
-    <p>一旦你把这个文件夹 <code>git commit</code> 提交到主分支。仓库里的 Github Actions CI 就会自动启动：打包这个文件夹 -> 调用 VPS 的
-        <code>/api/template/upload</code> 接口 -> 一键推入 R2 存储桶供全球调用。</p>
+    <h3>方案 A：可视化后台一键上传（推荐运营人员首选）</h3>
+    <p>系统在前端主站为您提供了一个极简的隐藏管理后台，完全脱离枯燥的命令行代码。</p>
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>登录后台：</strong><br>
+            浏览器访问 <code>https://www.885201314.xyz/admin/upload</code>，输入管理员密码。
+        </div>
+    </div>
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>拖拽上传：</strong><br>
+            将你写好的 <code>index.html</code> 和 <code>schema.json</code> （以及配套图片）全部选中，拖进网页的上传框内。
+        </div>
+    </div>
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+            <strong>秒级生发：</strong><br>
+            填写好你的模板英文文件夹名，点击“一键发布”。所有文件会瞬间直达云端 R2 存储桶，并在前台立刻生效。
+        </div>
+    </div>
 
-    <pre><code># 你的日常只要做这三行
+    <h3>方案 B：GitOps 自动化流水线（推荐资深极客）</h3>
+    <p>如果你将模板文件夹 <code>git commit</code> 提交到 Github 的 RomanceSpace-Templates 仓库主分支。仓库里的 Github Actions 就会自动启动：为你自动打包文件夹
+        -> 跨海调用 VPS 的 <code>/api/template/upload</code> 接口 -> 自动推入 R2。</p>
+
+    <pre><code># 极客的日常只要敲三行代码：
 git add .
 git commit -m "feat: 新增了一个表白特效网页"
 git push</code></pre>
-    <p>就是这么丝滑！</p>
+    <p>就是这么丝滑！根据您的团队人员构成，随意选择最合适的一套方案即可。</p>
 
 </body>
 

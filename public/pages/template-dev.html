@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>模板编写与上传教程</title>
+    <title>模板开发与上传指南</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -30,7 +30,7 @@
         }
 
         h3 {
-            margin-top: 30px;
+            margin-top: 20px;
             color: #0f766e;
         }
 
@@ -41,41 +41,49 @@
             border-radius: 6px;
             overflow: auto;
             font-size: 14px;
-            margin: 15px 0;
             position: relative;
         }
 
         code {
             font-family: monospace;
             color: #be185d;
-            font-size: 0.9em;
         }
 
         pre code {
-            background: transparent;
             color: inherit;
-            padding: 0;
         }
 
-        .file-tree {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            padding: 15px 20px;
-            border-radius: 6px;
-            font-family: monospace;
-            color: #334155;
-        }
-
-        blockquote {
+        .note {
             background: #f0fdf4;
             border-left: 4px solid #22c55e;
-            padding: 15px 20px;
+            padding: 12px 16px;
             margin: 20px 0;
             border-radius: 4px;
             color: #166534;
         }
 
-        /* 复制代码按钮样式 */
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
         .copy-btn {
             position: absolute;
             top: 8px;
@@ -100,204 +108,97 @@
             border-color: #10b981;
             color: white;
         }
-    </style>
 
+        .file-tree {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 15px 20px;
+            border-radius: 6px;
+            font-family: monospace;
+            color: #334155;
+        }
+    </style>
 </head>
 
 <body>
 
-    <h1>🧑‍💻 模板开发与上传指南</h1>
+    <h1>🧑‍💻 模板开发与自动化部署指南</h1>
+    <p>本指南面向前端同学。模板作为体系的第五大独立仓库 <code>RomanceSpace-Templates</code>，它的开发极其简单。最核心的配置就是其专有的 <code>schema.json</code>
+        骨架合约词典。</p>
 
-    <p>作为一个前端切图仔/工程师，恭喜你找到了最舒服的模板开发方式：<strong>你只需要写纯正的 HTML、CSS和JS 文件，不需要懂任何构建工具或复杂的框架。</strong></p>
+    <h2>一、标准化的模板结构拆解步骤</h2>
 
-    <h2>一、 一个模板的标准姿势</h2>
-
-    <p>在本地电脑的 <code>romancespace/templates/</code> 目录下，每一个文件夹就是一个模板项目。比如我们建一个名为 <code>my_card</code>
-        的模板，它的里面只能（且必须）有以下核心文件：</p>
-
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>步骤 1：构建文件夹</strong><br>
+            <em>举例</em>：在仓库里建一个 <code>my_card</code> 目录。
+        </div>
+    </div>
     <div class="file-tree">
-        romancespace/templates/my_card/<br>
-        ├── index.html (必填) 网页骨架和占位符<br>
-        ├── schema.json (可选) 定义有哪几个空给用户填<br>
-        ├── style.css (可选) 你的样式表<br>
-        ├── script.js (可选) 你的动画或交互脚本<br>
-        └── img/<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;└── bg.jpg (可选) 图片素材，你想放多深都可以
+        templates/my_card/<br>
+        ├── index.html (必填) 网页本体<br>
+        ├── schema.json (必填) 你的替换词典<br>
+        ├── style.css (可选) CSS 样式<br>
+        └── img/bg.jpg (可选) 图片挂载
     </div>
 
-    <h2>二、 编写 index.html (注入灵魂)</h2>
-
-    <p>这就是一张普通的网页，你只需要在想要展示“用户填写的文字”的地方，放上 <code>{{参数名}}</code> 即可。</p>
-
-    <pre><code>&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-&lt;head&gt;
-  &lt;!-- 引用本模板内部的 CSS，注意路径格式：/assets/你的模板名/文件名 --&gt;
-  &lt;link rel="stylesheet" href="/assets/my_card/style.css"&gt;
-&lt;/head&gt;
-&lt;body&gt;
-
-  &lt;h1&gt;{{title}}&lt;/h1&gt;
-  &lt;p&gt;这是由 {{author}} 给你留的一段话。&lt;/p&gt;
-
-  &lt;!-- 此处也可以引用模板内置图片 --&gt;
-  &lt;img src="/assets/my_card/img/bg.jpg"&gt;
-
-&lt;/body&gt;
-&lt;/html&gt;</code></pre>
-
-    <blockquote>
-        <strong>安全科普 (XSS 防御)：</strong><br>
-        不管用户在主平台里乱填什么恶作剧代码试图黑你的网页（比如填 <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>），系统在生成这页 HTML
-        之前，都会强制把敏感符号转义掉。所以，前端放心把 <code>{{}}</code> 贴在页面任何地方，绝对安全可用。
-    </blockquote>
-
-    <h2>三、 编写 schema.json (配置字典)</h2>
-
-    <div class="file-tree" style="margin-bottom: 20px; background: #fffbeb; border-color: #fde68a; color: #92400e;">
-        <strong>🔄 定制化参数是怎么通信的？（必看映射关系）：</strong><br><br>
-        这三者是一一对应的齿轮：<strong>[主站传的 Data] -> [Schema.json 的 key] -> [HTML 的占位符]</strong><br><br>
-        1. <strong>起点 (主站发起)：</strong> 主站服务器调用 API 接口时，传入了自定义数据。比如 <code>"data": { "title": "老婆生日快乐" }</code>。<br>
-        2. <strong>桥梁 (schema.json 定义)：</strong> 系统拿到数据后，会核对当前模板的 <code>schema.json</code>。只要里面定义过
-        <code>{"key": "title"}</code>，系统就会放行，提取出对应的这句“老婆生日快乐”。<br>
-        3. <strong>终点 (index.html 替换)：</strong> 最后，系统像做文本查找替换一样，把 <code>index.html</code> 源码里所有的 <code>{{title}}</code>
-        全部擦除，印上“老婆生日快乐”。<br><br>
-        <em>💡 如果主站 API 没有传 <code>title</code> 这个字段过来，或者用户留空了，系统就会智能降级，抽取 schema.json 里事先写好的 <code>default</code>
-            默认词填进去。</em>
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>步骤 2：撰写灵魂替换签</strong><br>
+            <em>举例</em>：在你写的纯天然 <code>index.html</code> 中，给所有变量绑上双括号 <code>{{}}</code>：
+        </div>
     </div>
+    <pre><code class="language-html">&lt;h1&gt;{{title}}&lt;/h1&gt;
+&lt;p&gt;这是由 {{author}} 给你留的一段话。&lt;/p&gt;</code></pre>
 
-    <p>如果你上面的 HTML 里写了 <code>{{title}}</code> 和
-        <code>{{author}}</code>，主站如果需要生成“模板填写表单”，该以什么规范传参数？这里就是 <code>schema.json</code> 登场的地方。
-    </p>
-
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+            <strong>步骤 3：定义 Schema.json</strong><br>
+            <em>举例</em>：它是给后端认人的关键配置文件，这正是本仓库的核心：
+        </div>
+    </div>
     <pre><code class="language-json">{
   "static": false,
   "fields": [
-    { 
-      "key": "title", 
-      "type": "string", 
-      "default": "默认大标题" 
-    },
-    { 
-      "key": "paragraphs",
-      "type": "array",
-      "join": "&lt;/p&gt;&lt;p&gt;",
-      "wrapStart": "&lt;p&gt;",
-      "wrapEnd": "&lt;/p&gt;",
-      "default": ["这是第一段", "这是第二段"]
-    }
+    { "key": "title", "type": "string", "default": "默认大标题" },
+    { "key": "author", "type": "string", "default": "神秘人" }
   ]
 }</code></pre>
 
-    <h3>schema.json 字段规范说明</h3>
-    <ul>
-        <li><code>static</code> (Boolean): 当前模板是否为纯静态页面。如果设为 <code>true</code>，代表这个页面不接收任何用户的数据定制，系统处理此模板速度极快。</li>
-        <li><code>fields</code> (Array): 这个模板里面所有可被修改的 <code>{{参数}}</code> 集合。</li>
-    </ul>
+    <h2>二、通过 GitHub Actions 推向线上 (重头戏)</h2>
 
-    <h4>单个 field (字段) 可以配置什么：</h4>
-    <table style="width:100%; text-align:left; border-collapse:collapse; font-size:14px; margin-bottom: 20px;">
-        <tr style="border-bottom: 2px solid #eee;">
-            <th style="padding: 10px;">属性</th>
-            <th style="padding: 10px;">类型</th>
-            <th style="padding: 10px;">必选？</th>
-            <th style="padding: 10px;">说明</th>
-        </tr>
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px;"><code>key</code></td>
-            <td style="padding: 10px;">String</td>
-            <td style="padding: 10px; color: #dc2626;">必填</td>
-            <td style="padding: 10px;">HTML 中 <code>{{}}</code> 里的英文代号。</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px;"><code>type</code></td>
-            <td style="padding: 10px;">String</td>
-            <td style="padding: 10px; color: #dc2626;">必填</td>
-            <td style="padding: 10px;"><code>string</code> (纯文本) 或 <code>array</code> (数组，常用于多段落或循环名册)</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px;"><code>default</code></td>
-            <td style="padding: 10px;">Any</td>
-            <td style="padding: 10px;">可选</td>
-            <td style="padding: 10px;">用户如果传了空值，网页上默认显示的占位文字。</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px;"><code>join</code></td>
-            <td style="padding: 10px;">String</td>
-            <td style="padding: 10px;">特殊</td>
-            <td style="padding: 10px;">仅当 <code>type</code>="array" 时有效，数组元素之间的拼接符号。例如表白段落的
-                <code>&lt;/p&gt;&lt;p&gt;</code>。
-            </td>
-        </tr>
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px;"><code>wrapStart / wrapEnd</code></td>
-            <td style="padding: 10px;">String</td>
-            <td style="padding: 10px;">特殊</td>
-            <td style="padding: 10px;">仅当 <code>type</code>="array" 时有效，在整个拼接好的字符串最外层包上一层。例如 <code>&lt;p&gt;</code> 和
-                <code>&lt;/p&gt;</code>。
-            </td>
-        </tr>
-    </table>
+    <div class="note">
+        <strong>💡 核心配置 <code>RS_ADMIN_KEY</code>：</strong><br>
+        确保你的 GitHub 仓库内填好了属于部署管理员的 Secret。随后你只需要敲下面两行：
+    </div>
 
-
-    <h2>四、 上传部署到线上</h2>
-
-    <p>自系统重构后，所有的模板现在统一存放在专属的 <strong>RomanceSpace-Templates</strong> 仓库中。上传模板最推荐、最稳妥的方式是直接利用 GitHub 的自动化流水线（CI/CD）。</p>
-
-    <h3>方式 1：通过 GitHub Actions 自动部署（强烈推荐）</h3>
-    <p>只要你的 <code>RomanceSpace-Templates</code> 仓库已经在 GitHub 上配置好了 <code>RS_ADMIN_KEY</code> 密钥，你只需要正常提交代码：</p>
-    <pre><code># 1. 提交你新写好的、或修改过的模板文件夹
-git add src/my_card/
-git commit -m "feat: add my_card template"
-
-# 2. 推送到 Github
+    <pre><code># 这个推送会直接激发核心流水线帮您打成 ZIP 调用 API 上传至系统仓库。
+git add .
+git commit -m "feat: my first UI template"
 git push</code></pre>
-    <p>就是这么简单！GitHub Actions 会自动检测你改动了哪个模板，并直接调 API 帮你上传到 Cloudflare 处理好一切。</p>
-
-    <h3>方式 2：本地命令行上传（仅供本地极客调试用）</h3>
-    <p>如果你在本地开发，想立刻强行塞进云端看效果，也可以呼叫仓库里自带的上传脚本：</p>
-    <pre><code># 第1步：切入 Templates 仓库根目录
-cd C:\Users\xxx\...\RomanceSpace-Templates
-
-# 第2步：在根目录建一个 .env 文件，写上密钥
-# 编辑 .env 文件写入：RS_ADMIN_KEY="你的超强密钥"
-
-# 第3步：执行上传！语法为 npm run upload 模板名 本地路径
-npm run upload my_card ./src/my_card</code></pre>
-
-    <h2>五、 如果我想更新已有的模板怎么办？</h2>
-
-    <p>比如你修复了 <code>my_card</code> 里 <code>style.css</code> 的一个样式 bug。你只需要：</p>
-    <p><strong>像平时一样 <code>git push</code> 更新的代码即可。</strong></p>
-    <p>系统极其聪明，当它发现你是覆盖更新时，它不仅会悄悄换掉静态资源文件，还会<strong>在后台把之前所有用过这个模板的几百个用户个人的专属旧网页，一口气顺带连锅端掉、全帮你重新生成一次新版的静态文件存入仓库。</strong>
-    </p>
-    <p>整个过程极其平滑，哪怕此时正好有几万访客在看旧页面，他们所看到的依然是旧版快照，等几秒钟后刷新，就会无缝切到你的新版，中间绝对不会出现任何打断或 404。</p>
+    <p>一旦覆盖上传，引擎将在后台无感刷新全球所有这套模板老用户的静态页！</p>
 
     <script>
-        // 注入“复制”按钮
         document.querySelectorAll('pre').forEach(pre => {
             const btn = document.createElement('button');
             btn.className = 'copy-btn';
             btn.innerText = '复制';
-
             btn.addEventListener('click', () => {
-                let text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
-                // 去除上面这行“复制”文本本身
+                let codeEl = pre.querySelector('code');
+                let text = codeEl ? codeEl.innerText : pre.innerText;
                 text = text.replace(/^复制\n/, '');
-
                 navigator.clipboard.writeText(text).then(() => {
                     btn.innerText = '已复制!';
                     btn.classList.add('copied');
-                    setTimeout(() => {
-                        btn.innerText = '复制';
-                        btn.classList.remove('copied');
-                    }, 2000);
+                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
                 });
             });
             pre.appendChild(btn);
         });
     </script>
-
 </body>
 
 </html>

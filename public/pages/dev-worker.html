@@ -6,15 +6,17 @@
     <title>Worker 边缘网关开发手册</title>
     <style>
         body {
-            font-family: -apple-system, system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
             max-width: 900px;
             margin: auto;
             padding: 40px;
             line-height: 1.7;
             color: #1f2937;
+            background: #fff;
         }
 
         h1 {
+            margin-top: 0;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
             color: #1e3a8a;
@@ -27,6 +29,11 @@
             padding-left: 12px;
         }
 
+        h3 {
+            margin-top: 20px;
+            color: #0f766e;
+        }
+
         pre {
             background: #1e293b;
             color: #f8fafc;
@@ -34,6 +41,7 @@
             border-radius: 6px;
             overflow: auto;
             font-size: 14px;
+            position: relative;
         }
 
         code {
@@ -50,6 +58,8 @@
             border-left: 4px solid #22c55e;
             padding: 12px 16px;
             margin: 20px 0;
+            border-radius: 4px;
+            color: #166534;
         }
 
         .success {
@@ -58,69 +68,139 @@
             padding: 12px 16px;
             margin: 20px 0;
             color: #065f46;
+            border-radius: 4px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>🌐 Worker 边缘网关开发手册 (读引擎分发)</h1>
-    <p>RomanceSpace-Worker 主要角色是一个 <code>fetch</code> 监听器，作为基于 Cloudflare Edge 的纯天然 CDN 层。它没有任何状态，且被严禁参与渲染和对象拼接写入。</p>
+    <h1>🌐 Worker 边缘网关 (高速分发者) 开发手册</h1>
 
-    <h2>一、为什么它是只读的？</h2>
-    <p>在早期的系统版本中，Worker 身兼两职：既要读请求生成页面，又要写 R2。这种耦合导致流量突增时，极其依赖 Worker 本身的 10ms/50ms CPU 时间配额。在 CQRS 彻底解耦后，Worker
-        恢复了它最强大的特性：<strong>无延迟转发与静态拦截。</strong></p>
+    <div class="note">
+        <strong>💡 重要的系统常识提醒：</strong><br>
+        打开任一生成的专属网站链接，本质就是您的浏览器发出的请求打到了 Worker 这个大管家上。在五大仓库中，<code>RomanceSpace-Worker</code>
+        是一个只读的高速入口，<strong>一旦您打开网址，等效于请求直接开始接受 Worker 的处理！</strong>
+    </div>
 
-    <h2>二、核心源码流程解析 (src/index.js)</h2>
+    <p>为了保障毫秒级别的相应速度，它不参与任何内容的渲染，它的配置由其目录下的 <code>wrangler.toml</code> 进行授权。通过 <code>kv_namespaces</code> 绑定验证簿，通过
+        <code>r2_buckets</code> 绑定大货仓。</p>
 
-    <h3>1. 域名分发器 (Host Matching)</h3>
-    <pre><code>
+    <h2>一、核心源码流程（分发器运行解析）</h2>
+
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>步骤 1：主域名分化与拦截</strong><br>
+            <em>举例</em>：当流量为 <code>romance.com</code> 根域名时，执行纯净跳转重定向至 <code>www.885201314.xyz</code>
+            （主平台）。一旦为带有三级标识的（如：<code>xiaoming.romance.com</code>），就进入极速检查阶段。
+        </div>
+    </div>
+    <pre><code>// 根域名识别判定代码块样例
 const url = new URL(request.url);
 const hostname = url.hostname;
 
-// 若为根域名 (如 romance.com)
 if (isMainDomain(hostname)) {
-    // 【拦截器】主域名的纯净跳转
     return Response.redirect(`https://www.885201314.xyz${url.pathname}`, 301);
 }
-// 若为泛域名 (如 xiaoming.romance.com)
-return handleSubdomainRequest(request, subdomain, env, ctx);
-    </code></pre>
-    <p>这里的关键逻辑是拦截一切野生访问（比如错误拼写），全部强行纠正到 <code>www.885201314.xyz</code> （Frontend 主应用所在的 Cloudflare Pages 服务器）。</p>
+return handleSubdomainRequest(request, subdomain, env, ctx);</code></pre>
 
-    <h3>2. 三级缓存分发机制（抗住了 100% 高并发的秘密）</h3>
-    <p>当一个合法的 <code>xiaoming.885201314.xyz</code> 请求进来时，它的获取路径是这三层，依次递进：</p>
+    <h2>二、三级大坝（抗住 100% 极速并发展示）</h2>
 
     <div class="success">
-        <strong>第 1 级缓存：Cache API (免费橱窗)</strong><br>
-        <code>const cache = caches.default;</code><br>
-        每次拿到结果后，都会在此调用 <code>cache.put(cacheKey, response.clone())</code> 进行缓存。如果这一层（Cloudflare Edge 本地缓存）命中了，Worker
-        根本不往下走，0ms 极飞。
+        <strong>🧱 第 1 级缓存：Cache API (橱窗展示门面)</strong><br>
+        每次拿到结果后，都会通过 <code>const cache = caches.default</code> 进行一次存储。如果是热门网站（如已经被人打开了），Worker 刚刚一接手便直接原路以 0ms
+        返回网页，根本不往下运行任何代码。
     </div>
 
     <div class="success">
-        <strong>第 2 级鉴权：KV Lookup (小本子挂号)</strong><br>
-        <code>const projectConfigStr = await env.ROMANCESPACE_KV.get(subdomain);</code><br>
-        只有当 1 级大门没有，Worker 才会向 KV 花费极小的成本询价。如果发现字典里没有这个人，直接退回（404）。
+        <strong>🧱 第 2 级鉴权：KV Lookup (小本子挂号)</strong><br>
+        只有当第1级由于初次访问没命中时，它才会通过调用向 Cloudflare 绑定的高速 KV 发起询价：要求给出是否有这个人存在的数据字典。<br>
+        <code>const projectConfigStr = await env.ROMANCESPACE_KV.get(subdomain);</code>
     </div>
 
     <div class="success">
-        <strong>第 3 级提货：R2 Bucket (永久冷库读取)</strong><br>
-        <code>const pageObj = await env.RS_BUCKET.get(`pages/${subdomain}.html`);</code><br>
-        确认有这人、但还没缓存，它才会进入重资产的 R2 存储读取 HTML 死块代码。读取出来后，立马存进第 1 级的 Cache 里，然后下发给用户。
+        <strong>🧱 第 3 级提货：R2 Bucket (永久冷库读取)</strong><br>
+        确认确实开通过这个站点，Worker 使用自身被授予的权限到 R2 请求后端早早放进来的 HTML
+        死静态文件块（<code>await env.RS_BUCKET.get(...)</code>）。取出并向第1级的展示面板填充副本。返回浏览器！
     </div>
 
-    <h2>三、病毒式引流注射 (Viral Footer)</h2>
-    <p>Worker 最精妙的设计之一：<code>injectViralFooter(htmlContent)</code>。</p>
-    <ul>
-        <li>为了最大化社交裂变属性，我们不希望“每次渲染时在 Backend 写死一个引流广告”，因为这会导致未来如果我们想换广告链接，就要重新渲染全部静态 R2。</li>
-        <li>所以，Backend 给出来的 HTML 底层永远是干净的。</li>
-        <li><strong>Worker 在拿到 R2 的那串纯净 HTML
-                时</strong>，以正则追加一行动态计算出的超链接：<code>&lt;a href="https://www.885201314.xyz?utm_source=xiaoming..."&gt;一键为您制作同款&lt;/a&gt;</code>。
-        </li>
-        <li>这实现了业务灵活度（Worker 里随时改推广连接）与文件干净度（R2 保持绝对纯粹）的完美平衡。</li>
-    </ul>
+    <h2>三、病毒式引流与动态化补刀</h2>
+    <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+            <strong>步骤 4：追加导流超链接</strong><br>
+            <em>举例</em>：所有由底层 Backend 获取的死资源都是最纯净的。Worker 在把 R2 拿出来的 HTML
+            丢向浏览器前，以极小算力的简单正则在网页底部打上：<code>&lt;a href="跳转到主平台..."&gt;一键同款&lt;/a&gt;</code>。<br>
+            由于挂在边缘，未来推广词和落地页的修缮，我们只要在这里进行调整，全网便能在几分钟内一起生效！
+        </div>
+    </div>
 
+    <script>
+        document.querySelectorAll('pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.innerText = '复制';
+            btn.addEventListener('click', () => {
+                let codeEl = pre.querySelector('code');
+                let text = codeEl ? codeEl.innerText : pre.innerText;
+                text = text.replace(/^复制\n/, '');
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.innerText = '已复制!';
+                    btn.classList.add('copied');
+                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+    </script>
 </body>
 
 </html>

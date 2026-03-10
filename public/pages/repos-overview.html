@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>项目总览 - 四大仓库协作机制</title>
+    <title>项目总览 - 五大核心仓库协作机制</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -57,18 +57,12 @@
             padding: 0;
         }
 
-        .card-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin: 20px 0;
-        }
-
         .card {
             border: 1px solid #e2e8f0;
             border-radius: 10px;
             padding: 18px 20px;
             background: #f8fafc;
+            margin-bottom: 20px;
         }
 
         .card h3 {
@@ -78,16 +72,16 @@
 
         .card p {
             margin: 5px 0 0;
-            font-size: 13px;
+            font-size: 14px;
             color: #475569;
         }
 
-        .card .tag {
+        .tag {
             display: inline-block;
-            font-size: 11px;
-            padding: 2px 8px;
+            font-size: 12px;
+            padding: 4px 10px;
             border-radius: 12px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             font-weight: 600;
         }
 
@@ -109,6 +103,11 @@
         .tag-backend {
             background: #ffe4e6;
             color: #881337;
+        }
+
+        .tag-templates {
+            background: #e0e7ff;
+            color: #3730a3;
         }
 
         .flow-step {
@@ -149,44 +148,6 @@
             margin: 20px 0;
         }
 
-        .warn {
-            background: #fffbeb;
-            border-left: 4px solid #f59e0b;
-            padding: 12px 16px;
-            border-radius: 4px;
-            color: #78350f;
-            margin: 20px 0;
-        }
-
-        .repo-link {
-            color: #2563eb;
-            text-decoration: none;
-            font-family: monospace;
-        }
-
-        .repo-link:hover {
-            text-decoration: underline;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 16px 0;
-            font-size: 14px;
-        }
-
-        th {
-            background: #f8fafc;
-            padding: 10px 12px;
-            text-align: left;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
         .copy-btn {
             position: absolute;
             top: 8px;
@@ -216,111 +177,197 @@
 
 <body>
 
-    <h1>🗺️ 项目总览 — 四大核心仓库协作机制</h1>
-    <p>本文档是所有技术成员加入 RomanceSpace 的<strong>第一站</strong>。读完这篇，你将从宏观上理解 CQRS 拆分后的系统分工逻辑和信息流向。</p>
+    <h1>🗺️ 项目总览 — 五大核心仓库协作机制</h1>
+    <p>本文档是所有技术成员加入 RomanceSpace 的<strong>第一站</strong>。平台基于极致的微仓库解耦思维（CQRS读写分离），将整个平台拆解成五个职责绝对专注的代码库。</p>
 
-    <h2>一、为什么采用 CQRS 和微仓库拆分？</h2>
+    <!-- 系统的起点 -->
+    <h2>一、系统的起点：打开网址等价于访问 Worker</h2>
 
-    <p>早期 RomanceSpace 尝试过 All-in-One 单仓库，导致部署非常沉重：UI 的一点小修订会阻断核心计算逻辑。我们最终采用**指令与查询职责分离 (CQRS)**思想，切分为四个拥有极高内聚的微型代码库：
-    </p>
-    <p><strong>拆分原则：</strong> 任何人的修改与发布都不影响其他模块的可用性。</p>
-
-    <div class="card-grid">
-        <div class="card">
-            <span class="tag tag-backend">⚙️ 后端 (写入引擎)</span>
-            <h3>RomanceSpace-Backend</h3>
-            <p>基于 Node.js，负责接管所有复杂的逻辑组装、模板解析、Supabase 写入和 R2 HTML 打包。它是系统的**重度计算核心**。</p>
-        </div>
-        <div class="card">
-            <span class="tag tag-frontend">🎨 前端 (UI 交互)</span>
-            <h3>RomanceSpace-Frontend</h3>
-            <p>基于 Vite / React 构建的 SPA 应用。负责全部 C端用户界面展示、填写表单，与 Backend 直接用 API 对话。</p>
-        </div>
-        <div class="card">
-            <span class="tag tag-worker">🌐 边缘网关 (读取引擎)</span>
-            <h3>RomanceSpace-Worker</h3>
-            <p>基于 Cloudflare Worker。极其轻薄，无任何业务逻辑。专门负责从 CDN / R2 取货发给全球访客，实现**抗揍极速分发**。</p>
-        </div>
-        <div class="card">
-            <span class="tag tag-docs">📄 文档资料</span>
-            <h3>RomanceSpace-Docs</h3>
-            <p>本文档站点源码库。由 GitHub 无脑推送到 Pages。</p>
-        </div>
+    <div class="note">
+        <strong>💡 核心概念说明：</strong>由于我们将复杂的网页提前烘焙固化在了服务器中缓存，所以 <strong>打开生成的个人网页（如 `xxx.885201314.xyz`），其实相当于请求直接访问了你的
+            Worker 网关！</strong>
     </div>
-
-    <h2>二、核心流水线：四大仓库如何互相协作？</h2>
-
-    <p>以下展现了一个完整的“用户定制专属网页”背后的信息传输接力赛：</p>
 
     <div class="flow-step">
         <div class="flow-num">1</div>
-        <div><strong>UI 交互 (Frontend仓库)</strong>：小明在前端界面选了一个恋爱模板，输入二人名字，点击提交。前端立刻向 API
-            <code>api.885201314.xyz</code> 发送 JSON 格式请求。
+        <div>
+            <strong>第一步：网关解析接入请求</strong><br>
+            <em>举例</em>：当全网几十万群众同时在浏览器中敲下并回车 <code>https://love.885201314.xyz</code>，泛域名 DNS 自动将请求拦截并转交给
+            <code>RomanceSpace-Worker</code>。
         </div>
     </div>
     <div class="arrow-down">↓</div>
     <div class="flow-step">
         <div class="flow-num">2</div>
-        <div><strong>强写逻辑 (Backend仓库)</strong>：收到数据，从深处挖出这套模板原始文件。将其与小明的文字“熔铸”成无法再更改的死块 HTML。随后持久化入超大型数据库。</div>
-    </div>
-    <div class="arrow-down">↓</div>
-    <div class="flow-step">
-        <div class="flow-num">3</div>
-        <div><strong>分发登记 (Backend仓库)</strong>：Backend 把熔铸好的 HTML 重力扔进了 Cloudflare 的 <strong>R2 仓库</strong>。同时在
-            <strong>KV 记事本</strong> 悄悄记下：<code>xiaoming -> 有效期</code>。
+        <div>
+            <strong>第二步：路由侦测与直读反馈</strong><br>
+            <em>举例</em>：Worker 不处理任何花里胡哨的代码，直接询问 KV：“love 前缀有绑定页面吗？”得知后立马去后勤（R2 存储器）搬走静态 HTML 返回给
+            <code>love.885201314.xyz</code> 给观众看，这便实现了极限的高并发防御。
         </div>
     </div>
-    <div class="arrow-down">↓</div>
+
+    <!-- 五大仓库 -->
+    <h2>二、五大核心仓库速查与核心配置（职责流转机制）</h2>
+
+    <p>通过组合下面的五个仓库，系统完成了一条：“发布->解析->写入->边缘分发”的完整闭环。</p>
+
+    <div class="card">
+        <span class="tag tag-templates">📦 模板资产仓 - RomanceSpace-Templates</span>
+        <p><strong>【核心职责】</strong></p>
+        <div class="flow-step">
+            <div class="flow-num" style="background: #3730A3;">✓</div>
+            <div><strong>步骤记录</strong>：切图工程师编写纯HTML、CSS，并在上传。它没有复杂的运行环境，完全与主系统解耦。独立被 GitHub 的 CICD 控制流上传到平台。<br>
+                <em>举例</em>：开发者小红新建 <code>flower_theme</code> 并加入动画样式，通过 <code>git push</code> 后被纳入平台模板库中。
+            </div>
+        </div>
+        <p><strong>【核心配置举例】</strong>在模板内的 <code>schema.json</code> 声明核心的数据槽：</p>
+        <pre><code class="language-json">{
+  "static": false,
+  "fields": [
+    { "key": "lover_name", "type": "string", "default": "宝贝" }
+  ]
+}</code></pre>
+    </div>
+
+    <div class="card">
+        <span class="tag tag-frontend">🎨 前端 UI 仓 - RomanceSpace-Frontend</span>
+        <p><strong>【核心职责】</strong></p>
+        <div class="flow-step">
+            <div class="flow-num" style="background: #166534;">✓</div>
+            <div><strong>步骤呈现</strong>：基于 Vite React 的管理系统，供大盘使用者进行挑选模板与写入文字。仅仅进行只读页面的展示并呼叫后端 API。<br>
+                <em>举例</em>：表白者进入主页，在输入框填写了 <code>lover_name</code> 为“小红”，点击提交后前端使用 <code>fetch</code> 将指令推发给后台。
+            </div>
+        </div>
+        <p><strong>【核心配置举例】</strong>根路径的 <code>.env</code> 文件存放请求的统一域前缀：</p>
+        <pre><code class="language-env"># 指向 VPS 服务的后端入口点
+VITE_API_BASE_URL=https://api.885201314.xyz/api</code></pre>
+    </div>
+
+    <div class="card">
+        <span class="tag tag-backend">⚙️ 后端承重仓 - RomanceSpace-Backend</span>
+        <p><strong>【核心职责】</strong></p>
+        <div class="flow-step">
+            <div class="flow-num" style="background: #881337;">✓</div>
+            <div><strong>步骤融铸</strong>：作为唯一的掌控大权的“写入引擎”，它将前端收集到的参数、存储的模板融合成具体的 HTML 文件。并将生成的 HTML 覆盖进 R2 并记录。<br>
+                <em>举例</em>：VPS 后台获取到刚才的请求，拼凑成带名字的 HTML，调用 SDK 执行存储动作（保存到 <code>project_{id}.html</code>）。
+            </div>
+        </div>
+        <p><strong>【核心配置举例】</strong>系统特权核心变量全部挂载至 <code>.env</code> 文件，绝不可外泄：</p>
+        <pre><code class="language-env"># 超高权 Database Token
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=ey... 
+
+# Cloudflare 管理权调用密钥
+R2_ACCESS_KEY_ID=xxx
+R2_SECRET_ACCESS_KEY=xxx
+CF_ACCOUNT_ID=xxx</code></pre>
+    </div>
+
+    <div class="card">
+        <span class="tag tag-worker">🌐 边缘网关仓 - RomanceSpace-Worker</span>
+        <p><strong>【核心职责】</strong></p>
+        <div class="flow-step">
+            <div class="flow-num" style="background: #713F12;">✓</div>
+            <div><strong>步骤宣发</strong>：作为整个微服务流水线的最后一端。正如“一”中所述，它是打开网站时直面全网络访客的读取缓冲大坝。没有写权限，仅对 CDN 进行路由指派与资源派发。<br>
+                <em>举例</em>：小红的好友们通过连接查看网页时，均不麻烦后端服务器操作。Worker 会从 CDN 或底层 R2 读取文件缓存 1 小时后给访客展示。
+            </div>
+        </div>
+        <p><strong>【核心配置举例】</strong>通过 <code>wrangler.toml</code> 绑定并授权外部 Cloudflare 内线资源的调用接口：</p>
+        <pre><code class="language-toml">name = "romancespace-worker"
+main = "src/index.js"
+
+# 绑定系统路由 KV 
+kv_namespaces = [
+  { binding = "ROMANCESPACE_KV", id = "xxx" }
+]
+
+# 允许从指定水桶读取生成的 HTML 模块
+[[r2_buckets]]
+binding = "ROMANCESPACE_R2"
+bucket_name = "romancespace-pages"</code></pre>
+    </div>
+
+    <div class="card">
+        <span class="tag tag-docs">📄 文档资料仓 - RomanceSpace-Docs</span>
+        <p><strong>【核心职责】</strong></p>
+        <div class="flow-step">
+            <div class="flow-num" style="background: #1E3A8A;">✓</div>
+            <div><strong>步骤说明</strong>：开发者阅读这套系统逻辑的书籍集合（你当然正身处其中）。<br>
+                <em>举例</em>：当新的业务接口增加时，开发同学在这增加 HTML 然后由 Git 被动推送展示。
+            </div>
+        </div>
+    </div>
+
+
+    <h2>三、核心 API 工作机制与业务调用</h2>
+
+    <p>为了使上述 5 大模块产生联动，通常使用 REST API 在前端至后端传递重要指令。这里列举系统内核心的<strong>生成网站 API</strong>进行释义：</p>
+
     <div class="flow-step">
-        <div class="flow-num">4</div>
-        <div><strong>极速展现 (Worker仓库)</strong>：第二天无数人访问 <code>xiaoming.</code>，流量打到了守在前门的门口保安（Worker）。保安一查 KV 说有效，马上从 R2
-            拉了 HTML 复印无数份塞进缓存里，全部发走。</div>
+        <div class="flow-num">1</div>
+        <div>
+            <strong>请求构建阶段 (Request)</strong><br>
+            <em>举例</em>：当所有的参数组装完毕后，前端采用 <code>POST</code> 途径向后端发送以下结构的 JSON 数据报文进行核心渲染呼叫：
+        </div>
     </div>
+    <pre><code class="language-javascript">// 前端调用的接口地址
+const ENDPOINT = "https://api.885201314.xyz/api/project/render";
 
-    <h2>三、四大仓库一览表</h2>
+// 发送的配置数据体，您可以点击复制该测试样例！
+const payload = {
+  "templateId": "my_card",     // 需要采用的模板
+  "domain": "love",            // 要求的二级访问子域名前缀
+  "data": {                    // 对应该模板 Schema 的真实数据
+    "lover_name": "小红",
+    "paragraphs": ["我爱你", "长长久久"]
+  }
+};
 
-    <table>
-        <tr>
-            <th>仓库</th>
-            <th>对应 GitHub</th>
-            <th>部署方式</th>
-            <th>主要负责人</th>
-        </tr>
-        <tr>
-            <td><code>RomanceSpace-Backend</code></td>
-            <td><a class="repo-link" href="https://github.com/XShen-Jason/RomanceSpace-Backend"
-                    target="_blank">XShen-Jason/RomanceSpace-Backend</a></td>
-            <td>VPS (Node.js/PM2) 长期挂载</td>
-            <td>后端 / 核心开发</td>
-        </tr>
-        <tr>
-            <td><code>RomanceSpace-Frontend</code></td>
-            <td><a class="repo-link" href="https://github.com/XShen-Jason/RomanceSpace-Frontend"
-                    target="_blank">XShen-Jason/RomanceSpace-Frontend</a></td>
-            <td>Cloudflare Pages (<code>npm run build</code>)</td>
-            <td>前端 / 交互</td>
-        </tr>
-        <tr>
-            <td><code>RomanceSpace-Worker</code></td>
-            <td><a class="repo-link" href="https://github.com/XShen-Jason/RomanceSpace-Worker"
-                    target="_blank">XShen-Jason/RomanceSpace-Worker</a></td>
-            <td>自动部署 (<code>wrangler deploy</code>)</td>
-            <td>架构师 / DevOps</td>
-        </tr>
-        <tr>
-            <td><code>RomanceSpace-Docs</code></td>
-            <td><a class="repo-link" href="https://github.com/XShen-Jason/RomanceSpace-Docs"
-                    target="_blank">XShen-Jason/RomanceSpace-Docs</a></td>
-            <td>Cloudflare Pages</td>
-            <td>全体（贡献文档）</td>
-        </tr>
-    </table>
+fetch(ENDPOINT, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});</code></pre>
 
-    <div class="note">
-        <strong>✅ 环境依赖：</strong> 本项目后端重度依赖 <code>Node.js 18+</code>，前端依赖
-        <code>Node.js</code>，边缘完全脱离本地环境限制。如果无需修改组装逻辑，本地开发仅需起个 Vite。
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>后台执行并反馈 (Response)</strong><br>
+            <em>举例</em>：后端经过数秒的渲染和分发后，返回代表操作闭环成功的数据结构。并赋予该网站实时去缓存的强制查看（预览）权：
+        </div>
     </div>
+    <pre><code class="language-json">{
+  "success": true,
+  "message": "静态部署成功并刷新边缘服务器！",
+  "data": {
+     "previewUrl": "https://love.885201314.xyz?preview=1710000000"
+  }
+}</code></pre>
 
+    <script>
+        // 为页面注入友好的“一键点击复制”按钮动作，极度便利化后续相关区块借用 
+        document.querySelectorAll('pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.innerText = '复制';
+
+            btn.addEventListener('click', () => {
+                let text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+                // 去除可能意外获取的按钮自身遗留的“复制”明文前缀字符
+                text = text.replace(/^复制\n/, '');
+
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.innerText = '已复制!';
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        btn.innerText = '复制';
+                        btn.classList.remove('copied');
+                    }, 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+    </script>
 </body>
 
 </html>

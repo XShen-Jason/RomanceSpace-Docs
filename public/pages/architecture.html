@@ -57,6 +57,7 @@
       overflow: auto;
       font-size: 14px;
       line-height: 1.5;
+      position: relative;
     }
 
     code {
@@ -117,8 +118,67 @@
     .badge-cache {
       background: #10b981;
     }
-  </style>
 
+    .badge-templates {
+      background: #8b5cf6;
+    }
+
+    .note {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      padding: 12px 16px;
+      border-radius: 4px;
+      color: #166534;
+      margin: 20px 0;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    .flow-num {
+      background: #2563eb;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    .copy-btn.copied {
+      background: #10b981;
+      border-color: #10b981;
+      color: white;
+    }
+  </style>
 </head>
 
 <body>
@@ -126,97 +186,84 @@
   <h1>🚀 核心概念与工作原理 (基于 CQRS 读写分离)</h1>
 
   <p>这是一个极度优化的高并发小网页分发平台（RomanceSpace）。为了能在近乎“免费”的前提下支撑极高的访问量，系统底层经过了 CQRS（命令查询职责分离）深度设计。</p>
-  <p>阅读本文，你将了解这套被称作 <strong>“VPS 写时预渲染 + Worker 边缘 Cache 极速分发”</strong> 的架构到底是怎么运作的。</p>
 
-  <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
-
-  <h2>一、 五大核心组件通俗比喻</h2>
-
-  <p>整个系统由一台重型计算服务器和四个 Cloudflare 边缘组件相互协作完成：</p>
-
-  <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-vps">1. VPS 后端</span> 核心中央流水线</h3>
-    <p><strong>通俗比喻：</strong> 公司的核心工厂。所有的脏活累活都在这干。</p>
-    <p><strong>它的作用：</strong> 接收创建请求，将半成品模板和用户数据拼接成最终的静态 HTML。同时将数据永久存入数据库，并将 HTML 包裹送往 Cloudflare R2 仓库。</p>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-worker">2. CF Worker</span> 全球分发门卫</h3>
-    <p><strong>通俗比喻：</strong> 遍布全球的无情前台接待员（绝不做计算组装活儿）。</p>
-    <p><strong>它的作用：</strong> 拦截用户的网址访问，判断网址有效性。只负责“去仓库拿写好的 HTML 网页给访客看”，实现全球秒开。</p>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-kv">3. KV</span> 登记处指示牌</h3>
-    <p><strong>通俗比喻：</strong> 一本极其轻薄的小本子。里面只写谁用什么模板（例：<code>xiaoming -> /pages/xiaoming.html</code>）。</p>
-    <p><strong>它的作用：</strong> Worker 接客时，秒查小本子，看这个人开通网页没。如果没开通直接赶走（极速返回 404）。</p>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-r2">4. R2</span> 无限大仓库</h3>
-    <p><strong>通俗比喻：</strong> 一个不用付快递费（出口流量免费）的超大静态仓库。</p>
-    <p><strong>它的作用：</strong> 存放海量静态文件（图片、CSS样式、音乐）以及由 VPS 后端推送过来的所有**最终静态 HTML 页面**。</p>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0;"><span class="badge badge-cache">5. Cache</span> 门口的免费橱窗</h3>
-    <p><strong>通俗比喻：</strong> 前台门外的展示大屏。路口的人直接看大屏，连门卫 (Worker) 都不用打扰。</p>
-    <p><strong>它的作用：</strong> 免费帮我们阻挡 99% 的请求压力。网页被访问一次后，就会在这个橱窗缓存。之后一万个人来看，连 Worker 的请求调用数都不耗费！</p>
+  <div class="note">
+    <strong>💡 重要提示：打开网址相当于访问 Worker！</strong><br>
+    用户的每一次访问（例如打开 <code>love.885201314.xyz</code>），流量第一时间都会打到 Cloudflare Worker 上，由网关决定是从缓存、还是 R2 返回最终页面。
   </div>
 
   <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
 
-  <h2>二、 核心工作流程（图解）</h2>
+  <h2>一、 五大核心组件与配置速查</h2>
+
+  <p>整个系统由 5 个核心仓库组装而成，职责清晰，绝不耦合：</p>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-templates">1. 模板资产仓</span> 独立资源库</h3>
+    <p><strong>核心配置：</strong> 模板内部的 <code>schema.json</code>，负责定义要给用户展示哪些输入框。</p>
+    <p><strong>通俗比喻：</strong> 专门存放“未署名贺卡”的仓库，随时准备被拿去加工。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-vps">2. VPS 后端</span> 核心中央流水线</h3>
+    <p><strong>核心配置：</strong> 根目录的 <code>.env</code> 文件，存放数据库密钥 (<code>SUPABASE_SERVICE_ROLE_KEY</code>) 与 R2 访问权。</p>
+    <p><strong>通俗比喻：</strong> 公司的核心工厂。接收创建请求，将半成品模板和用户数据拼接成最终的静态 HTML。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-worker">3. CF Worker</span> 全球分发门卫</h3>
+    <p><strong>核心配置：</strong> <code>wrangler.toml</code>，用于绑定 KV 与 R2 存储桶以便拥有读取权。</p>
+    <p><strong>通俗比喻：</strong> 遍布全球的前台接待员，只负责拦截请求并“去仓库拿写好的 HTML 网页”。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-kv">4. KV & R2 资源存放</span> 登记处与大仓库</h3>
+    <p><strong>核心配置：</strong> 都在 Cloudflare 控制台直接分配的命名空间与存储桶。</p>
+    <p><strong>通俗比喻：</strong> KV 是一本小本子。里面只写谁开通了网页；R2 则是放静态 HTML 文件的大型免费仓库。</p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;"><span class="badge badge-cache">5. 前端 UI 仓</span> 业务入口</h3>
+    <p><strong>核心配置：</strong> <code>.env</code> 文件里的 <code>VITE_API_BASE_URL</code> 指向后端 API。</p>
+    <p><strong>通俗比喻：</strong> 放在门外的填写表单系统，与纯呈现文档网站一起构成了系统的外貌。</p>
+  </div>
+
+  <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+
+  <h2>二、 核心工作流程（图解与示例）</h2>
 
   <p>我们将整个系统拆解为三个步骤，完美展现 CQRS 的 <strong>写算力集中化</strong> 和 <strong>读算力边缘化</strong>：</p>
 
-  <h3>流程 ①：开发者上传一套“半成品模板”</h3>
-  <pre>
-【管理员/开发者 调用 Backend API】上传 ZIP 模板包
-        │
-        ▼
-[VPS 后端 接收并解析]
-        ├── 将 index.html, style.css 传进【R2 仓库】对应的版本号目录下。
-        ├── 将模板参数写入 Supabase 并配置同步到【KV 指示牌】上。
-        └── 将默认预览页面直接渲染出来。
-  </pre>
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div>
+      <strong>第一步：开发者上传模板</strong><br>
+      <em>举例</em>：开发者小李把名为 <code>flower_theme</code> 的模板推送到了 Git，系统将其同步至 R2 成为公用资产。
+    </div>
+  </div>
 
-  <h3>流程 ②：主平台为“小明”开通专属页面 (强写链路)</h3>
-  <p>小明在前端界面填好数据后：</p>
-  <pre>
-【前端】 -> POST `api.885201314.xyz/api/project/render` 带上 "我爱你"
-        │
-        ▼
-[VPS 后端 开始重度组装 (预渲染)]
-        ├── 从【R2 仓库】拉取模板源代码和参数结构。
-        ├── 进行复杂的字符串插值，把 "我爱你" 塞进 HTML 里的 {{ta的名字}} 中。
-        ├── 存库：将用户的原始 JSON 表单存入 Supabase 持久化。
-        ├── 关键一步：把这份做好的 HTML（小明专属版），推送覆盖到【R2 仓库】。
-        ├── 在【KV 指示牌】写下："xiaoming 路由有效"。
-        └── 通知 Cloudflare API，让旧的【Cache 橱窗】缓存失效。
-  </pre>
-  <blockquote>
-    <strong>核心优势：为什么让 VPS 渲染？</strong><br>
-    如果在 Worker (边缘节点) 里做字符串插值和验证，受限于免费节点的 CPU 限制，极其容易遇到死锁或超时。让 VPS 在主干线路一次性把 HTML
-    死硬块“预组装”出来，Worker 只需要当一个没脑子的送货员，性能能够暴涨一万倍。
-  </blockquote>
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div>
+      <strong>第二步：主平台开通专属页面 (强写链路)</strong><br>
+      <em>举例</em>：小明在前端填上“我爱你”，后端接收后，经过复杂字符串拼接生成 <code>xiaoming.html</code> 并推送到 R2 仓库保存。同时在 KV
+      写下：<code>xiaoming 已激活</code>。
+    </div>
+  </div>
+  <pre><code>// 这是一个简易的核心数据结构样例
+const submitData = {
+  template: "flower_theme",
+  data: { lover: "小红", text: "我爱你" }
+};</code></pre>
 
-  <h3>流程 ③：小明的朋友们猛烈访问页面 (极速读链路)</h3>
-  <pre>
-几万个人同时打开网址 `xiaoming.885201314.xyz`
-        │
-        ▼
-请求来到全球 Cloudflare 边缘节点
-        │
-        ├─ 查【Cache 橱窗】找到小明的网页了？ 
-        │    ✅ 直接返回！(0延迟，无需任何计算)
-        │
-        └─ 如果橱窗里刚好没找到 (如第一次访问)
-             │
-             [Worker 路由] 被唤醒，光速看一眼【KV 指示牌】确认有小明。
-             转身进去【R2 仓库】，把 "小明的固定 HTML死硬块" 提出来。
-             交给访客，顺手在【Cache 橱窗】贴一张缓存，之后一小时内的人全去看缓存。
-  </pre>
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div>
+      <strong>第三步：访客高速阅读 (极速读链路)</strong><br>
+      <em>举例</em>：几万人打开 <code>xiaoming.885201314.xyz</code> 时，流量直达 Worker。Worker 查 KV 确认有小明后，转身去 R2 拿出
+      <code>xiaoming.html</code>，交给缓存并在之后 1 小时内直接用缓存扛并发。
+    </div>
+  </div>
 
   <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
 
@@ -227,7 +274,29 @@
     <li><strong>写（Write）</strong>由于并发量低、计算复杂，交由独立自主的 Node.js VPS 后端稳扎稳打。</li>
     <li><strong>读（Read）</strong>由于并发量极高、计算几乎没有，交由 Cloudflare Worker 从 R2 提取缓存给全世界。</li>
   </ul>
-  <p>这极大规避了 Serverless 的各种 CPU 使用率上限，也是这套系统之所以快如闪电的最终秘密。</p>
+
+  <script>
+    document.querySelectorAll('pre').forEach(pre => {
+      const btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.innerText = '复制';
+
+      btn.addEventListener('click', () => {
+        let text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+        text = text.replace(/^复制\n/, '');
+
+        navigator.clipboard.writeText(text).then(() => {
+          btn.innerText = '已复制!';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.innerText = '复制';
+            btn.classList.remove('copied');
+          }, 2000);
+        });
+      });
+      pre.appendChild(btn);
+    });
+  </script>
 
 </body>
 

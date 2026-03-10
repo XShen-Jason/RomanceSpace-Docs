@@ -6,15 +6,17 @@
     <title>平台全局数据流转分析 (Data Flow)</title>
     <style>
         body {
-            font-family: -apple-system, system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
             max-width: 900px;
             margin: auto;
             padding: 40px;
             line-height: 1.7;
             color: #1f2937;
+            background: #fff;
         }
 
         h1 {
+            margin-top: 0;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
             color: #1e3a8a;
@@ -28,7 +30,7 @@
         }
 
         h3 {
-            margin-top: 30px;
+            margin-top: 20px;
             color: #0284c7;
         }
 
@@ -39,6 +41,7 @@
             border-radius: 6px;
             overflow: auto;
             font-size: 14px;
+            position: relative;
         }
 
         code {
@@ -65,21 +68,74 @@
             font-weight: bold;
             margin: 10px 0;
         }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
     </style>
 </head>
 
 <body>
 
-    <h1>📊 平台全局数据流转分析 (Data Flow)</h1>
-    <p>这个章节将从全栈的角度，以上帝视角解剖一个名为 <strong>"xiaoming"</strong> 的表单是如何贯穿 Frontend -> Backend -> R2/KV -> Worker -> 物理浏览器的。
-    </p>
+    <h1>📊 全局数据流转分析 (Data Flow)</h1>
+    <p>这个章节将从全栈的角度，以上帝视角解剖一个名为 <strong>"xiaoming"</strong> 的表单是如何贯穿整个系统的五大核心仓库步骤：Frontend -> Backend -> R2/KV -> Worker
+        -> 物理浏览器的。</p>
 
-    <h2>一、 数据的起跑（Frontend -> JSON）</h2>
-    <div class="box">
-        <h3>📍 React Builder.jsx</h3>
-        <p>用户选择了名为 <code>classic_love</code> 的模板。提交了如下原生对象状态：</p>
-        <pre><code class="language-json">
-{
+    <h2>一、 数据的起飞流转全程</h2>
+
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>步骤 1：前端状态收集</strong><br>
+            <em>举例</em>：小明在 <code>RomanceSpace-Frontend</code> 用户端输入了自己与女友的参数信息，并点击“确认开通”：
+        </div>
+    </div>
+
+    <div class="box" style="margin-left: 45px;">
+        <pre><code class="language-json">{
   "subdomain": "xiaoming",
   "templateType": "classic_love",
   "data": {
@@ -87,56 +143,64 @@
     "you": "小红",
     "startDate": "2024-01-01"
   }
-}
-        </code></pre>
+}</code></pre>
     </div>
 
     <div class="arrow">⬇ 跨海传输 (HTTPS POST /api/project/render)</div>
 
-    <h2>二、 数据的熔铸（Backend -> HTML注入）</h2>
-    <div class="box">
-        <h3>📍 Express /routes/project.js</h3>
-        <p>Node.js 通过提取模板，获得了 R2 里的 <code>index.html</code> 字符串：</p>
-        <pre><code class="language-html">
-&lt;h1&gt;{{me}} 爱 {{you}}&lt;/h1&gt;
-&lt;p&gt;我们在一起相爱了 {{_calcDays(startDate)}} 天&lt;/p&gt;
-        </code></pre>
-        <p>Backend 的内部算法引擎高速正则替换，生成了最终字符串结果：</p>
-        <pre><code class="language-html">
-&lt;h1&gt;小明 爱 小红&lt;/h1&gt;
-&lt;p&gt;我们在一起相爱了 99 天&lt;/p&gt;
-        </code></pre>
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>步骤 2：后端深度熔铸</strong><br>
+            <em>举例</em>：请求抵近 <code>RomanceSpace-Backend</code>（Node.js 服务器）。提取 R2 高清母版并在毫秒内组装：
+        </div>
+    </div>
+    <div class="box" style="margin-left: 45px;">
+        <p>组装后的静态结果被固定为：</p>
+        <pre><code class="language-html">&lt;h1&gt;小明 爱 小红&lt;/h1&gt;
+&lt;p&gt;我们在一起相爱了 99 天&lt;/p&gt;</code></pre>
     </div>
 
     <div class="arrow">⬇ 资产沉淀 (S3 API & REST API)</div>
 
-    <h2>三、 数据的封印（R2 & KV & Supabase）</h2>
-    <div class="box">
-        <h3>📍 数据库持久层写入</h3>
-        <ul>
-            <li><strong>【R2 对象存储】</strong>生成 <code>/pages/xiaoming.html</code>，它的内容就是上面组装好的“死块”HTML。</li>
-            <li><strong>【KV 键值系统】</strong>存入键 <code>"xiaoming"</code>，值为
-                <code>{"template":"classic_love", "version":1}</code>。这是为了以后读取时的快照检查。</li>
-            <li><strong>【Supabase 数据库】</strong>在 PostgreSQL 表 <code>projects</code> 增加一行记录，原始 JSON
-                原封不动沉底，方便以后“后台二次编辑”能把数据反选出来。</li>
-        </ul>
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+            <strong>步骤 3：数据硬封印入库</strong><br>
+            <em>举例</em>：在底层：生成的文件存放于 <strong>R2 对象存储</strong> 的文件下。在 <strong>KV 系统</strong>写入 <code>xiaoming:有效</code>
+            确认。所有的配置原参数落库 <strong>Supabase</strong> 中实现安全沉淀。
+        </div>
     </div>
 
-    <div class="arrow">⬇ 数千万人访问 (DNS Wildcard)</div>
+    <div class="arrow">⬇ 数千万人访问 (打开网址等于访问网关 Worker)</div>
 
-    <h2>四、 数据的喷发（Worker -> Cache -> 浏览器）</h2>
-    <div class="box">
-        <h3>📍 Cloudflare Edge 读取流</h3>
-        <p>用户访问 <code>https://xiaoming.885201314.xyz</code>：</p>
-        <ol>
-            <li>Cloudflare CDN (一级缓存) 完全失效或未设置。</li>
-            <li>Worker 脚本文本激活，看到 Request 请求中 Hostname 是 <code>xiaoming</code>。</li>
-            <li>它立即 <code>await KV.get('xiaoming')</code>。获得配置（鉴权通过）。</li>
-            <li>前往 R2 拿到早就渲染好的、一锤定音的 HTML，加上 <code>Cache-Control: public, max-age=3600</code>，并注入拉新尾部链接。</li>
-            <li>直接抛回给浏览器客户端，同时让全地球这个节点的 CF 代理商将这段响应内存挂起（1 小时内有效）。</li>
-        </ol>
+    <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+            <strong>步骤 4：极速分发与消费</strong><br>
+            <em>举例</em>：所有人打开 <code>https://xiaoming.885201314.xyz</code> 网址时，即直接访问了高速边缘网关
+            <code>RomanceSpace-Worker</code>。此时网关秒搜 KV 小本子确认小明存在，拿出 R2 里面的死静态文件交货并缓存 1 小时，扛住爆炸满载的流量冲击。
+        </div>
     </div>
 
+    <script>
+        document.querySelectorAll('pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.innerText = '复制';
+            btn.addEventListener('click', () => {
+                let codeEl = pre.querySelector('code');
+                let text = codeEl ? codeEl.innerText : pre.innerText;
+                text = text.replace(/^复制\n/, '');
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.innerText = '已复制!';
+                    btn.classList.add('copied');
+                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+    </script>
 </body>
 
 </html>

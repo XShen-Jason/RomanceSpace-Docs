@@ -6,15 +6,17 @@
     <title>Frontend 前端界面开发手册</title>
     <style>
         body {
-            font-family: -apple-system, system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
             max-width: 900px;
             margin: auto;
             padding: 40px;
             line-height: 1.7;
             color: #1f2937;
+            background: #fff;
         }
 
         h1 {
+            margin-top: 0;
             border-bottom: 2px solid #eee;
             padding-bottom: 10px;
             color: #1e3a8a;
@@ -27,6 +29,11 @@
             padding-left: 12px;
         }
 
+        h3 {
+            margin-top: 20px;
+            color: #0f766e;
+        }
+
         pre {
             background: #1e293b;
             color: #f8fafc;
@@ -34,6 +41,7 @@
             border-radius: 6px;
             overflow: auto;
             font-size: 14px;
+            position: relative;
         }
 
         code {
@@ -50,6 +58,55 @@
             border-left: 4px solid #22c55e;
             padding: 12px 16px;
             margin: 20px 0;
+            border-radius: 4px;
+            color: #166534;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
         }
     </style>
 </head>
@@ -57,59 +114,61 @@
 <body>
 
     <h1>🎨 Frontend 前端界面开发手册</h1>
-    <p>RomanceSpace-Frontend 是一个纯粹的 UI 层 (Single Page Application)。它没有任何状态留存，所有业务逻辑全部通过调用 Backend API
-        完成。我们的核心法则是：<strong>前端只负责渲染和收集表单。</strong></p>
+    <p>做为五大仓库的一员，<code>RomanceSpace-Frontend</code> 是一个纯粹的 UI 视图层 (Single Page
+        Application)。它没有任何状态留存和复杂的打包生成机制，所有业务逻辑全部通过调用 Backend API 完成。我们的核心法则是：<strong>核心逻辑绝不留在前端！</strong></p>
 
-    <h2>一、目录解剖与核心挂载</h2>
-    <p>前端基于 React (Vite) 搭建，移除了传统 SPA 的复杂状态管理（如 Redux），仅使用 React Hooks 进行组件内状态流转。</p>
-    <pre>
-src/
-├── api/
-│   └── client.js        // 唯一与Backend通信的接口层
-├── components/          // (可复用UI组件)
-├── pages/               // 路由页面层
-│   ├── Home.jsx         // 官网主页
-│   ├── Gallery.jsx      // 模板画廊层 (GET API展示)
-│   └── Builder.jsx      // 开通制作层 (POST API提交)
-├── App.jsx              // 核心路由挂载
-└── main.jsx             // React 根节点
-    </pre>
+    <div class="note">
+        <strong>💡 核心配置绑定 (<code>.env</code>)：</strong><br>
+        前端由于缺乏任何处理私密数据（如 KV 或 R2 的 Key）的权限，因此它的 <code>.env</code> 只有一条：<br>
+        <code>VITE_API_BASE_URL=https://api.885201314.xyz/api</code>，它唯一的任务就是呼叫这个远端计算大哥。
+    </div>
 
-    <h2>二、核心组件与数据流</h2>
+    <h2>一、核心组件与信息交互流程流向</h2>
 
-    <h3>1. App.jsx (路由网关)</h3>
-    <p>使用 <code>react-router-dom</code> 规范页面跳转，保证 URL 体验。</p>
+    <p>在这个单页应用中，分为两块主要的功能页面（组件），其流向如下：</p>
 
-    <h3>2. Gallery.jsx (模板画廊)</h3>
-    <p><strong>作用：</strong>呈现所有已上架的模板。它是用户的主入口。</p>
-    <ul>
-        <li>生命周期初始化时，调用 <code>api/client.js</code> 的 <code>getTemplates()</code>。</li>
-        <li>底层发起 <code>GET /api/template/list</code> 请求到 Backend VPS。</li>
-        <li>Backend 返回可用模板的 JSON 数组（含 name、version、配置字段）。</li>
-        <li>将 JSON 映射成一个个直观的卡片。</li>
-    </ul>
+    <h3>1. 画廊层展示逻辑 (Gallery.jsx)</h3>
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>步骤 1：同步模板素材</strong><br>
+            <em>举例</em>：页面开启加载 `useEffect` 时，呼叫核心网关 <code>GET /api/template/list</code>。
+        </div>
+    </div>
 
-    <h3>3. Builder.jsx (开通表单构建器) - 核心核心</h3>
-    <p><strong>作用：</strong>收集用户要开通的域名和动态参数（如姓名、相识天数），并呼叫 Backend 进行“熔铸”。</p>
-    <p><strong>流程解析：</strong></p>
-    <ol>
-        <li>从 URL 或状态中接收上一步 Gallery 传来的模板 <code>type</code> (如 `commemoration`)。</li>
-        <li>利用 React useState 双向绑定表单：
-            <ul>
-                <li><code>subdomain</code>: 用户想要的域名前缀。</li>
-                <li><code>formData</code>: 一个深度对象，对应模板 schema 要求的所有自定义字段。</li>
-            </ul>
-        </li>
-        <li>点击提交，触发 <code>renderProject()</code>，开始向 Backend 发送开通指令。在收到 200 SUCCESS 之前，处于 Loading 锁死状态。</li>
-    </ol>
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>步骤 2：直观卡片成型</strong><br>
+            <em>举例</em>：Backend 返回数组字典，前端遍历这些 JSON 画出精美的选项给访客选择其喜爱的排版类型。
+        </div>
+    </div>
 
-    <h2>三、api/client.js (网关代理)</h2>
-    <p>所有需要和 Backend 说话的代码，全部封装在这个文件里。绝不允许在组件里直接 fetch。</p>
-    <pre><code>
-// 核心开通函数：向 Backend 发送熔铸请求
+    <h3>2. 制作表单递交流程 (Builder.jsx)</h3>
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+            <strong>步骤 3：收集信息与状态聚合</strong><br>
+            <em>举例</em>：小红进入到指定的 <code>templateType</code> 表单后，利用 <code>useState</code> 绑定了自己与男友的名称：<code>boyName</code>
+            / <code>girlName</code>。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+            <strong>步骤 4：核心触发与渲染请求</strong><br>
+            <em>举例</em>：当点击提交时，页面会被 Loading 锁定不允许连点。随后调用核心方法 <code>renderProject()</code>，开始向远端的 Backend 排队发送数据。最终当对方回复
+            200 HTTP 并且发送了网页的新版连接才算完成一次重度交互。
+        </div>
+    </div>
+
+    <h2>二、唯一的网关通信处 (api/client.js)</h2>
+    <p>为了可维护性，所有需要和 Backend 说话的代码，全部封装在这个文件里。严禁在单独的 React 组件中调用 fetch：</p>
+    <pre><code>// 核心开通函数：向 Backend 发送熔铸请求的样板
 export const renderProject = async (data) => {
     /*
-      data 结构:
+      预期 data 结构:
       {
         subdomain: 'xiaoming',
         templateType: 'commemoration',
@@ -119,19 +178,32 @@ export const renderProject = async (data) => {
         }
       }
     */
-    const response = await fetch(`${API_BASE_URL}/api/project/render`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/project/render`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
     return response.json(); 
-};
-    </code></pre>
-    <div class="note">
-        <strong>环境变量：</strong> 前端需要知道 Backend 的地址，因此需要在 <code>.env</code> 文件中配置
-        <code>VITE_API_BASE_URL=https://api.885201314.xyz</code> 才能正常运行。
-    </div>
+};</code></pre>
 
+    <script>
+        document.querySelectorAll('pre').forEach(pre => {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.innerText = '复制';
+            btn.addEventListener('click', () => {
+                let codeEl = pre.querySelector('code');
+                let text = codeEl ? codeEl.innerText : pre.innerText;
+                text = text.replace(/^复制\n/, '');
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.innerText = '已复制!';
+                    btn.classList.add('copied');
+                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
+                });
+            });
+            pre.appendChild(btn);
+        });
+    </script>
 </body>
 
 </html>

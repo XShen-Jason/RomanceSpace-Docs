@@ -63,7 +63,6 @@
             margin-right: 15px;
         }
 
-        /* 复制按钮样式 */
         .copy-btn {
             background: #e2e8f0;
             border: 1px solid #cbd5e1;
@@ -106,7 +105,6 @@
             font-weight: 600;
         }
 
-        /* 正常的 code 样式，去除了背景和内边距 */
         code {
             font-family: monospace;
             color: #be185d;
@@ -181,16 +179,50 @@
         .tab-content.active {
             display: block;
         }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            border-radius: 4px;
+            color: #166534;
+            margin: 20px 0;
+        }
     </style>
 </head>
 
 <body>
 
-    <h1>🗄️ 开通与修改专属网页API详细文档</h1>
+    <h1>🗄️ 开通与修改专属网页 API 详细文档</h1>
 
-    <p>这份文档面向**主站后端开发人员 / 系统架构师**。此文档定义了主站与边缘节点进行交互的核心API。</p>
-    <p>由于优化了底层架构，现在无论是**启用域名**、**首次使用模板**，还是**后续修改域名的模板**，**均统一调用同一个接口** (`POST /admin/render-page`)。边缘节点会自动处理覆盖和缓存刷新逻辑。
-    </p>
+    <p>由于优化了底层架构，现在无论是启用域名、首次使用模板，还是修改资料，<strong>均统一调用同一个后端的写入接口</strong>。只要用户点击生成，系统便会在后台重新向 R2 仓库覆盖新的专属 HTML。</p>
+
+    <div class="note">
+        <strong>💡 核心配置提醒：</strong> 在 <code>RomanceSpace-Frontend</code> 中，你需要将 <code>VITE_API_BASE_URL</code> 设定为你的 VPS
+        后端地址。而此处的 <code>POST</code> 交互正是一切的开始。打开生成的网页链接相当于直接访问网关 Worker。
+    </div>
 
     <hr style="border: 0; border-top: 1px solid #eee; margin: 40px 0;">
 
@@ -203,11 +235,6 @@
         </div>
         <button class="copy-btn copy-url">复制链接</button>
     </div>
-
-    <h3>Headers (必填)</h3>
-    <ul>
-        <li><code>Content-Type</code>: <code>application/json</code></li>
-    </ul>
 
     <h3>公共参数说明</h3>
     <table>
@@ -239,17 +266,19 @@
 
     <hr style="border: 0; border-top: 1px solid #eee; margin: 40px 0;">
 
-    <!-- 场景分类说明 -->
+    <h2>操作流程举例</h2>
 
-    <h2>场景一：启用域名 (仅绑定，不传入具体数据)</h2>
-    <p>用户首次开通，此时还未填写任何表白/纪念内容的场景。我们希望生成一个带有“默认占位文字”的网页。</p>
-    <p><strong>传参方式</strong>：<code>data</code> 参数传 <code>{}</code> 即可，系统会自动使用模板 <code>schema.json</code> 中预设的
-        <code>default</code> 默认值进行渲染。
-    </p>
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>步骤 1：仅启用域名 (不传数据)</strong><br>
+            <em>举例</em>：小明刚注册但没填内容，发起一个空数据请求以呈现空网页：
+        </div>
+    </div>
 
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('scene1-curl', this)">cURL</div>
-        <div class="tab" onclick="switchTab('scene1-fetch', this)">Fetch</div>
+        <div class="tab active" onclick="switchTab('scene1-curl', this)">cURL 示例</div>
+        <div class="tab" onclick="switchTab('scene1-fetch', this)">Fetch 示例</div>
     </div>
     <div id="scene1-curl" class="tab-content active">
         <pre><code>curl -X POST https://api.885201314.xyz/api/project/render \
@@ -272,14 +301,16 @@
 });</code></pre>
     </div>
 
-
-    <h2>场景二：首次使用模板 (开通并立刻附带资料)</h2>
-    <p>用户在一个表单中同时完成了选模板 + 填写自定义资料流，主站将收集到的数据一次性提交开通。</p>
-    <p><strong>传参方式</strong>：将用户填写的数据填入 <code>data</code> 对象内。这会完全替换掉模板内设的默认值。</p>
-
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>步骤 2：填充与覆盖自定义数据</strong><br>
+            <em>举例</em>：小红填写了数据提交，后端接收后替换上一步的空内容网页，实现了刷新与覆盖：
+        </div>
+    </div>
     <div class="tabs">
-        <div class="tab active" onclick="switchTab('scene2-curl', this)">cURL</div>
-        <div class="tab" onclick="switchTab('scene2-fetch', this)">Fetch</div>
+        <div class="tab active" onclick="switchTab('scene2-curl', this)">cURL 示例</div>
+        <div class="tab" onclick="switchTab('scene2-fetch', this)">Fetch 示例</div>
     </div>
     <div id="scene2-curl" class="tab-content active">
         <pre><code>curl -X POST https://api.885201314.xyz/api/project/render \
@@ -301,41 +332,6 @@
     subdomain: "xiaoming",
     type: "anniversary",
     data: { names: ["小明", "红红"], startDate: "2023-01-01" }
-  })
-});</code></pre>
-    </div>
-
-
-    <h2>场景三：后续修改域名下的模板资料 </h2>
-    <p>小明在使用 <code>anniversary</code> 模板期间，希望把 <code>startDate</code> 可以修改成 <code>2024-02-14</code>，或者更换另一个全新的模板。</p>
-    <p><strong>传参方式</strong>：依然是调用本接口，无论是更换 <code>type</code> 还是单纯更换
-        <code>data</code>，系统都会在后台自动冲刷掉旧页面，重新生成静态网页，并秒速清理全球缓存。
-    </p>
-
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('scene3-curl', this)">cURL</div>
-        <div class="tab" onclick="switchTab('scene3-fetch', this)">Fetch</div>
-    </div>
-    <div id="scene3-curl" class="tab-content active">
-        <pre><code>curl -X POST https://api.885201314.xyz/api/project/render \
-  -H "Content-Type: application/json" \
-  -d '{
-    "subdomain": "xiaoming",
-    "type": "anniversary",
-    "data": { 
-      "names": ["小明", "红红"], 
-      "startDate": "2024-02-14" 
-    }
-  }'</code></pre>
-    </div>
-    <div id="scene3-fetch" class="tab-content">
-        <pre><code>const response = await fetch("https://api.885201314.xyz/api/project/render", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    subdomain: "xiaoming",
-    type: "anniversary",
-    data: { names: ["小明", "红红"], startDate: "2024-02-14" }
   })
 });</code></pre>
     </div>

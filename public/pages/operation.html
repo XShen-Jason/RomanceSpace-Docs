@@ -3,85 +3,110 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>运营方案 - 表白创意平台规划</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-            line-height: 1.7;
-            color: #334155;
-            background-color: #f8fafc;
-            margin: 0;
-            padding: 40px 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            max-width: 900px;
+            margin: auto;
             padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #fff;
         }
 
         h1 {
-            font-size: 32px;
-            color: #0f172a;
             margin-top: 0;
-            margin-bottom: 30px;
-            font-weight: 700;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 16px;
-            background: -webkit-linear-gradient(45deg, #3b82f6, #ec4899);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
         }
 
         h2 {
-            font-size: 24px;
-            color: #1e293b;
             margin-top: 40px;
-            margin-bottom: 20px;
-            font-weight: 600;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
         }
 
         h3 {
-            font-size: 18px;
-            color: #334155;
-            margin-top: 24px;
-            font-weight: 600;
+            margin-top: 20px;
+            color: #0f766e;
         }
 
-        p {
-            margin: 16px 0;
-            font-size: 16px;
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+            position: relative;
         }
 
-        ul,
-        ol {
-            padding-left: 24px;
-            margin: 16px 0;
-        }
-
-        li {
-            margin: 8px 0;
-        }
-
-        .highlight-box {
-            background: linear-gradient(135deg, #fff1f2 0%, #fce7f3 100%);
-            padding: 20px 24px;
-            border-radius: 12px;
-            margin: 30px 0;
-            border: 1px solid #fbcfe8;
-        }
-
-        .highlight-box p {
-            margin: 0;
+        code {
+            font-family: monospace;
             color: #be185d;
-            font-weight: 500;
-            font-size: 18px;
+        }
+
+        pre code {
+            color: inherit;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #166534;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
         }
 
         .card-grid {
@@ -108,101 +133,71 @@
             margin-top: 0;
             color: #2563eb;
         }
-
-        .tag {
-            display: inline-block;
-            background: #dbeafe;
-            color: #1e40af;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 14px;
-            font-weight: 500;
-            margin-right: 8px;
-            margin-bottom: 8px;
-        }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>表白创意平台规划与运营方案</h1>
 
-        <p>本页面用于统一团队认知，整合规划我们<strong>情感表达模板平台</strong>的核心定位、商业模式与执行策略。</p>
+    <h1>📈 表白创意平台规划与运营方案</h1>
+    <p>本页面用于统一团队认知，整合规划我们<strong>情感表达模板平台</strong>的核心定位、商业模式与执行策略。</p>
 
-        <h2>一、项目定位与规划</h2>
-        <p>我们要做的项目是一个 <strong>情感表达模板平台</strong>，用户可以快速生成可分享的浪漫页面。平台核心目标是：</p>
-        <ul>
-            <li>降低用户表达情感的门槛（无需懂代码或设计）</li>
-            <li>提供仪式感和趣味性（专属三级域名如 <code>love.example.com</code>）</li>
-            <li>形成可分享、可传播的创意闭环</li>
-        </ul>
+    <div class="note">
+        <strong>💡 核心平台系统 (五大仓库协同)：</strong><br>
+        我们的系统由五大低耦合仓库支撑。前端收集信息，后端承载重铸算力，Worker网关极速分发，加上专属模板库支撑着这套商业飞轮。
+    </div>
 
-        <div class="card-grid">
-            <div class="card">
-                <h3>🔄 扩充方式</h3>
-                <ul>
-                    <li>持续新增模板和小玩法，保持内容新鲜感</li>
-                    <li>通过用户反馈采集创意，并生成新模板</li>
-                    <li>长期增加会员服务、独立定制和个性化页面</li>
-                </ul>
-            </div>
-            <div class="card">
-                <h3>💰 盈利方式</h3>
-                <ul>
-                    <li>付费定制独立页面</li>
-                    <li>会员功能（无限更换模板、高级模板、去水印）</li>
-                    <li>接入品牌合作或虚拟礼物功能</li>
-                </ul>
-            </div>
+    <h2>一、项目定位与长线规划</h2>
+
+    <div class="card-grid">
+        <div class="card">
+            <h3>🔄 扩充闭环</h3>
+            <p>1. 持续新增 <code>RomanceSpace-Templates</code> 模板，保持新鲜感。<br>
+                2. 通过用户反馈采集创意，投入后续开发。<br>
+                3. 长期增加会员专属三级域名和定制页面。</p>
         </div>
-
-        <h2>二、运营实际执行方案</h2>
-
-        <h3>1. 平台引流与内容展示</h3>
-        <ul>
-            <li>在抖音、小红书发布短视频，每条视频展示一个创意页面模板效果。</li>
-            <li>视频时长控制在 7–20 秒，直接展示效果，不讲故事。</li>
-            <li>视频结尾引导用户注册平台领取<strong>专属三级域名</strong>。</li>
-            <li>通过评论征集创意和抽粉丝免费生成页面形成互动。</li>
-        </ul>
-
-        <h3>2. 用户参与感机制</h3>
-        <ul>
-            <li>前期告知用户他们是首批体验者/创始粉丝，增强归属感。</li>
-            <li>在评论区或社群里互动，收集模板建议和需求，周更“采纳建议上线新模板”。</li>
-            <li>团队内部根据粉丝需求生成新模板，持续更新生态。</li>
-        </ul>
-
-        <h3>3. 页面生成与分发</h3>
-        <ul>
-            <li>注册用户自动领取专属三级域名（例如：<code>username.yourdomain.com</code>）。</li>
-            <li>团队根据用户选择的模板生成页面内容，免费用户每天可更换一次模板。</li>
-            <li>付费用户可获得全程定制页面和独立域名绑定。</li>
-        </ul>
-
-        <h3>4. 互动与反馈闭环（增长飞轮）</h3>
-        <p>
-            <span class="tag">视频吸引</span> ➔
-            <span class="tag">用户注册</span> ➔
-            <span class="tag">生成分享</span> ➔
-            <span class="tag">反馈收集</span> ➔
-            <span class="tag">新模板上线</span>
-        </p>
-
-        <h2>三、技术执行方案（配合运营）</h2>
-        <ul>
-            <li><strong>核心目标：</strong>子域名映射稳定、模板系统可批量增加、大量并发访问无延迟。</li>
-            <li><strong>前端：</strong>静态渲染 + 动态参数（轻量化加载）。</li>
-            <li><strong>后端：</strong>中心服务器处理 API 请求和支付，边缘节点负责访问分流。</li>
-            <li><strong>云服务：</strong>借助 Cloudflare 的 DNS 通配符和 Workers 提供强力支撑。</li>
-        </ul>
-
-        <div class="highlight-box">
-            <p>💡 一句话总结本项目：</p>
-            <p style="color: #64748b; font-size: 16px; margin-top: 8px;">用创意页面和专属域名帮助用户快速表达情感，用短视频和互动内容获取流量，用模板和定制实现变现。
-            </p>
+        <div class="card">
+            <h3>💰 盈利模型</h3>
+            <p>1. 付费定制超级独立告白页面。<br>
+                2. 会员去除水印、无限更换模板。<br>
+                3. 虚拟礼物、品牌合作接入。</p>
         </div>
     </div>
+
+    <h2>二、运营转化增长飞轮 (实操步骤)</h2>
+
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>步骤 1：短视频公域引流</strong><br>
+            <em>举例</em>：在抖音、小红书发布震撼视效模板，引导 <code>“免费领专属表白域名”</code>。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>步骤 2：主站裂变与用户填报</strong><br>
+            <em>举例</em>：用户进入到 Frontend 主站开始填写参数。他们填好后，后台在 1 秒内为他生成专属的子网页。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+            <strong>步骤 3：分发与接收惊喜</strong><br>
+            <em>举例</em>：用户拿到诸如 <code>jack.885201314.xyz</code> 这样的子域名。由于直接访问了处于五大仓库C位的 <strong>Worker
+                网关</strong>，这使得对方能0延迟打卡此专属表白页。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+            <strong>步骤 4：底部植入病毒式回流锚点</strong><br>
+            <em>举例</em>：在精美的表白页底部，Worker 网关已埋好了指向主站的“我也要同款”按钮。对方点击再次回到步骤1，飞轮无限放大！
+        </div>
+    </div>
+
 </body>
 
 </html>

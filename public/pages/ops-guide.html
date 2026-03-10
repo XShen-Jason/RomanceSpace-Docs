@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>运营人员指南 - RomanceSpace</title>
+    <title>平台运营指北 (SaaS笔记版)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -31,26 +31,7 @@
 
         h3 {
             margin-top: 20px;
-            color: #0f766e;
-        }
-
-        pre {
-            background: #1e293b;
-            color: #f8fafc;
-            padding: 15px;
-            border-radius: 6px;
-            overflow: auto;
-            font-size: 14px;
-            position: relative;
-        }
-
-        code {
-            font-family: monospace;
-            color: #be185d;
-        }
-
-        pre code {
-            color: inherit;
+            color: #2563eb;
         }
 
         .note {
@@ -104,12 +85,13 @@
             background: #f8fafc;
             padding: 10px 12px;
             text-align: left;
-            border-bottom: 2px solid #e2e8f0;
+            border: 1px solid #e2e8f0;
+            color: #334155;
         }
 
         td {
             padding: 10px 12px;
-            border-bottom: 1px solid #e2e8f0;
+            border: 1px solid #e2e8f0;
             vertical-align: top;
         }
 
@@ -123,92 +105,74 @@
 
         .card h3 {
             margin-top: 0;
-            font-size: 15px;
+            font-size: 16px;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>💼 运营 / 产品人员使用指南</h1>
+    <h1>💼 平台运营与排错手薄 (运维笔记)</h1>
+    <p>这份文档能帮非技术人员快速排查线上的客诉和异常，也是我们在社群推广和用户答疑时最底层的知识库底牌。</p>
 
     <div class="note">
-        <strong>💡 一句话核心常识：</strong><br>
-        用户一旦打开别人发给他的专属表白链接（如 <code>xiaoming.885201314.xyz</code>），就是直接访问到了高并发扛鼎之作—— <strong>Worker
-            边缘网关</strong>，它保证了永远极速且不会崩盘的秒开体验。
+        <strong>💡 大杀器（系统韧性）：</strong><br>
+        这个平台所有的 C端流量，全都打在了 <code>RomanceSpace-Worker</code> 的边缘网络上。所以你不用怕同行抹黑说“卡顿、打不开”，因为连美国国防部都在用这套底座抗并发。
     </div>
 
-    <h2>一、用户从购买到页面的生成步骤</h2>
-
-    <div class="flow-step">
-        <div class="flow-num">1</div>
-        <div>
-            <strong>步骤 1：主站表单提交</strong><br>
-            <em>举例</em>：小白在 <code>RomanceSpace-Frontend</code> 选购并填上自己和爱人的寄语。
-        </div>
-    </div>
-
-    <div class="flow-step">
-        <div class="flow-num">2</div>
-        <div>
-            <strong>步骤 2：引擎底层熔炼</strong><br>
-            <em>举例</em>：表单穿透重重迷雾到达 <code>RomanceSpace-Backend</code> 服务器，在几百毫秒内被组成了死静态页面，推送到全球仓库中。
-        </div>
-    </div>
-
-    <div class="flow-step">
-        <div class="flow-num">3</div>
-        <div>
-            <strong>步骤 3：获得分发专属链接</strong><br>
-            <em>举例</em>：小白拿到了专属于她的链接并通过微信发过去。
-        </div>
-    </div>
-
-    <div class="flow-step">
-        <div class="flow-num">4</div>
-        <div>
-            <strong>步骤 4：裂变与收获</strong><br>
-            <em>举例</em>：小红打开链接（直接进入 <code>RomanceSpace-Worker</code> 的怀抱），随后通过网页底部的转化按钮也来做一份。
-        </div>
-    </div>
-
-    <h2>二、运营常见场景 FAQ</h2>
+    <h2>一、 解决用户的燃眉之急 (FAQ 排错方案)</h2>
 
     <div class="card">
-        <h3>❓ 新活动要推新模板，上线流程是？</h3>
-        <p>运营输出文档 -> 设计出视觉稿 -> 前端将其写成静态页并切入 <code>RomanceSpace-Templates</code> 代码库 -> GitHub Action 自动部署瞬间推向全球！</p>
-    </div>
-
-    <div class="card">
-        <h3>❓ 出现 404 ，什么情况？</h3>
+        <h3>❓ 客户说：“生成了专属链接，但点开报 404 (Not Found)？”</h3>
         <p>
-            1. 极小概率后台网络抖动没生成完（我们自带3秒重试兜底）。<br>
-            2. 该订单/账号在后台被封禁清除。
+            <strong>怎么回事：</strong>极大概率是我们的后端 VPS 正在辛苦地用正则渲染、并在向 R2 写文件的路上卡顿了（比如国际路由抖动），这通常只持续几百毫秒。<br>
+            <strong>怎么安抚：</strong>“亲，由于当前制作专属表白的人数较多，我们给您的浪漫加了点等待魔法。请您<strong>刷新一下页面</strong>或等2秒再点一次即可！”<br>
+            <strong>技术兜底：</strong>前端的 BSR (浏览器实时渲染) 已经极大缓解了等待焦虑，如果在 Worker 遇到真 404，我们会让 Worker 给访问者返回一个友好的报错页或者 302
+            重定向到主站。
         </p>
     </div>
 
-    <h2>三、平台域名字典规范</h2>
+    <div class="card">
+        <h3>❓ 新的节日活动快到了，要上新模板，我们需要怎么打配合？</h3>
+        <p>
+            <strong>怎么回事：</strong>这是个经典的跨团队协作过程。<br>
+            <strong>走个流程：</strong><br>
+            1. 运营/策划输出“七夕限定模板”的需求文档与文案。<br>
+            2. 给到 UI 出设计图。<br>
+            3. 甩给前端切图开发套入 <code>RomanceSpace-Templates</code> 库。<br>
+            4. 工程师一敲 <code>git push</code>，它就被一秒内打包到云端。<br>
+            5. 在主站配置上加上这个模板卡片，开始卖！
+        </p>
+    </div>
+
+    <h2>二、 域名的三权分立 (必须记住的基础)</h2>
+    <p>作为运营，当你看到用户甩过来的错误截图，通过看上面那一行的网址就能判断是谁出的锅。</p>
     <table>
         <tr>
-            <th>职能板块</th>
             <th>域名链路</th>
+            <th>用途与职能</th>
+            <th>挂了找谁算账</th>
         </tr>
         <tr>
-            <td>API 接口网关</td>
             <td><code>api.885201314.xyz</code></td>
+            <td>中央大厂房，负责接收所有写请求。</td>
+            <td>VPS 后端 / 数据库</td>
         </tr>
         <tr>
-            <td>主平台官网</td>
-            <td><code>www.885201314.xyz / romancespace.885201314.xyz</code></td>
+            <td><code>www.885201314.xyz</code></td>
+            <td>前台迎宾酒楼，负责让用户填表付款。</td>
+            <td>Frontend / CF Pages</td>
         </tr>
         <tr>
-            <td>C端用户私有生成网站</td>
             <td><code>[生成名].885201314.xyz</code></td>
+            <td>用户自己开的小黑屋，全是死静态浪漫代码。</td>
+            <td>Worker 分发 / R2 存储</td>
         </tr>
     </table>
 
     <div class="warn">
-        <strong>⚠️ 小心：</strong>五大仓库体系非常坚固，您无需担心并发被挤爆问题，请尽情做病毒营销宣传！
+        <strong>⚠️ 给运营吃一颗定心丸：</strong><br>
+        做任何大型推广活动无需向技术部门报备加服务器和带宽！CF 万兆带宽全接管，去微博抖音尽情投流发力裂变吧！
     </div>
 
 </body>

@@ -1,119 +1,197 @@
-<h1>📖 RomanceSpace 开发者入门手册 (Developer Notes)</h1>
-<p>欢迎来到 RomanceSpace 项目！这套系统看似有很多仓库，但本质上都是由**“一个核心思想”**串联起来的。
-这份文档将以最通俗的语言，带你理清整个架构的流转逻辑、各个仓库的分工，以及如何进行日常开发。</p>
-<hr>
-<h2>🌟 第一回：核心架构思想 —— 为什么我们要搞这么复杂？</h2>
-<h3>痛点与目标</h3>
-<p>如果你只做个单体应用（比如传统的 PHP/Java 网站），一旦用户多起来，服务器瞬间就会卡死，或者你的钱包会被云服务商掏空。
-我们的目标是：<strong>“让 2h2g 这种最廉价的服务器，支撑起百万级甚至是千万级的并发访问！”</strong></p>
-<h3>解决方案：CQRS（读写分离）+ 边缘存储</h3>
-<p>这个高大上的词，在 RomanceSpace 里的白话就是：</p>
-<blockquote>
-<p><strong>“生成网页的时候慢慢来（VPS 服务器），看网页的时候直接从最近的 CDN (Cloudflare) 拿！”</strong></p>
-</blockquote>
-<h4>系统中存在两波人：</h4>
-<ol>
-<li><strong>创作者 (小红)</strong>：她来到我们的平台 (Frontend)，写情话，挑模板，点击“生成”。<ul>
-<li>这个操作是**“写操作”**，它很重。这部分流量会导向我们自己的 <strong>VPS (Backend)</strong>。VPS 老黄牛会慢条斯理地把她的文字塞进模板里，变成一段纯净的 HTML 代码，然后塞进云仓库 (R2)。</li>
-</ul>
-</li>
-<li><strong>吃瓜群众 (上万个网友)</strong>：小红把链接发到朋友圈，上万人同时点开网址。<ul>
-<li>这时，访问请求<strong>根本到不了 VPS</strong>！全都在半路的 <strong>Cloudflare Worker (边缘网关)</strong> 被拦截了。Worker 直接从云仓库 (R2) 里拿出写好的 HTML 返回。这就叫**“读操作”**。</li>
-</ul>
-</li>
-</ol>
-<hr>
-<h2>🏢 第二回：四大山头（Repository）的职责划分</h2>
-<p>为了互不干扰，我们将代码拆成了四部分：</p>
-<h3>1. 🎨 RomanceSpace-Templates (模板素材库)</h3>
-<p><strong>身份</strong>：装潢队的样板间。
-<strong>内容</strong>：纯静态的 HTML/CSS/JS 文件（如纪念日、表白墙等风格）。
-<strong>重点</strong>：这里面有个 <code>schema.json</code>（Manifest），它是向前端收银台汇报的：“我这个模板需要用户填『标题』、『日期』和『留言』三个框”。</p>
-<h3>2. 🖥️ RomanceSpace-Frontend (用户收银台 &amp; 编辑器)</h3>
-<p><strong>身份</strong>：大堂接待员（纯前端 SPA，React 等构建）。
-<strong>功能</strong>：用户在这里登录、选模板、填表单。
-<strong>核心机制 (BSR)</strong>：当用户在编辑内容时，前端会把基础的 HTML 拉过来，在<strong>浏览器本地</strong>（利用 Iframe）进行文字替换，实现<strong>毫秒级无服务器消耗的实时预览</strong>。</p>
-<h3>3. ⚙️ RomanceSpace-Backend (后台中央厨房)</h3>
-<p><strong>身份</strong>：主厨与大掌柜 (Node.js VPS)。
-<strong>功能</strong>：</p>
-<ul>
-<li>唯一拥有数据库和 R2 读写权限的地方。</li>
-<li>接收前端传来的数据，真正生成最终的静态网页（存入 R2）。</li>
-<li><strong>安全防线 (黑名单)</strong>：内置了 DNS 域名黑名单系统，防止用户把系统保留字（如 <code>api</code>, <code>www</code>）注册成了自己的情话页面。</li>
-</ul>
-<h3>4. 🛜 RomanceSpace-Worker (全球快递员)</h3>
-<p><strong>身份</strong>：Cloudflare 边缘路由器。
-<strong>功能</strong>：</p>
-<ul>
-<li>任何外界访问 <code>*.885201314.xyz</code> 的流量，第一个撞上的就是它。</li>
-<li>如果请求 <code>api.</code>，它就转发给 VPS；如果是 <code>assets.</code>，它就去读取静态资源并加上<strong>长达 7 天的死缓存</strong>。</li>
-<li>如果请求的是普通用户域名（如 <code>anna.</code>），它就去 R2 取出 <code>pages/anna/index.html</code> 送给用户。</li>
-</ul>
-<hr>
-<h2>🌊 第三回：数据是怎么跑的？(流量大揭秘)</h2>
-<h3>场景 A：小红创建了一个专属页面</h3>
-<ol>
-<li><strong>Frontend</strong>：小红填好表，选好域名 <code>anna</code>，点击“生成”。</li>
-<li><strong>Backend</strong>:<ul>
-<li>收到请求，检查 <code>anna</code> 有没有在黑名单里？（通过内存缓存判断，不花一分钱额度）。</li>
-<li>检查通过！把小红的内容塞进“表白”模板的 HTML 里。</li>
-<li>把 <code>index.html</code> 扔进 R2 云仓库的 <code>pages/anna/index.html</code> 位置。</li>
-<li>告诉 Cloudflare：“这是小红刚建好的，别给我放旧的缓存！”</li>
-</ul>
-</li>
-<li><strong>Frontend</strong>：告诉小红：创建成功，跳转 <code>anna.885201314.xyz/?preview=当前时间戳</code> 强制看一眼最新版。</li>
-</ol>
-<h3>场景 B：小明看到朋友圈的链接点进去</h3>
-<ol>
-<li><strong>Worker (快递员)</strong>：接到 <code>anna.</code> 的快递单号。</li>
-<li><strong>Worker</strong> 去 R2 云仓库找包裹 <code>pages/anna/index.html</code>。</li>
-<li><strong>Worker</strong> 告诉下一站的 CDN 节点：“这个包裹在这个小时内谁还要，就直接在这个镇子上发给他，别再来问我了！”（<code>Cache-Control: max-age=3600</code>）。</li>
-<li>所以如果一万个人同时点开，只有<strong>第一个人</strong>让 Worker 跑了一趟，剩下 9999 个人全是白嫖 CDN 的缓存，速度飞快，成本为零！</li>
-</ol>
-<hr>
-<h2>🛠️ 第四回：开发者如何优雅地开发？(实战篇)</h2>
-<p>我是新来的，我要怎么在这个架构下调试代码？</p>
-<h3>步骤 1: 环境准备</h3>
-<ul>
-<li>确保电脑装了 <code>Node.js</code>。</li>
-<li>克隆四个仓库（放到同一个父文件夹下，就像现在的结构）。</li>
-</ul>
-<h3>步骤 2: 跑起后端 (VPS 模拟)</h3>
-<p>进入 <code>RomanceSpace-Backend</code>：</p>
-<pre><code class="language-bash">npm install
-# 配置好你的 .env 文件，需要包含 Supabase 和 R2 的密钥
-npm run dev
-</code></pre>
-<p>此时你的大掌柜在 <code>localhost:3000</code> 醒了。</p>
-<h3>步骤 3: 跑起前端 (大堂接待)</h3>
-<p>进入 <code>RomanceSpace-Frontend</code>：</p>
-<pre><code class="language-bash">npm install
-npm run dev
-</code></pre>
-<p>大堂接待员在 <code>localhost:5173</code> 开始营业。你可以随意点击，因为网络请求会发给 <code>localhost:3000</code>。</p>
-<h3>步骤 4: 跑起 Worker (快递员模拟)</h3>
-<p>进入 <code>RomanceSpace-Worker</code>：</p>
-<pre><code class="language-bash">npm install
-npx wrangler dev
-</code></pre>
-<p>在本地，Wrangler 会完美模拟 Cloudflare 的环境，拦截你的请求并代理到对应的路径。</p>
-<hr>
-<h2>🚨 第五回：系统安全与运维锦囊</h2>
-<h3>1. 我想保留一个域名（比如 <code>admin.885201314.xyz</code>），不想被用户抢注怎么办？</h3>
-<p>非常简单，甚至不需要动代码重启服务器！</p>
-<ul>
-<li>登录 Cloudflare 后台，找到 <strong>KV 存储</strong> <code>ROMANCESPACE_KV</code>。</li>
-<li>添加/修改一个键值对，键为 <code>__sys__blocklist</code>，值填入 JSON：<code>[&quot;admin&quot;, &quot;love&quot;, &quot;root&quot;]</code>。</li>
-<li>接着，用 Postman 调一下你后端的雷达接口：<code>POST https://api.xxx.com/api/project/config/refresh-blocklist</code></li>
-<li>VPS 掌柜就会立刻下发通知：这几个名字从现在起禁售！</li>
-</ul>
-<h3>2. 为什么在 DNS 里加了解析，页面还是 404？</h3>
-<p>记住老规矩：</p>
-<ul>
-<li><strong>如果是外部独立部署的项目 (如另一个 CF Pages)</strong>：只要加到黑名单保护起来就行，系统底层（CF Pages 路由优先机制）会直接把流量劫走。</li>
-<li><strong>如果是本库内的新逻辑</strong>：那除了配 DNS，还要去 <code>RomanceSpace-Worker</code> 里面的 <code>index.js</code>，加上一句 <code>if (host === &#39;新名字&#39;) { 你的处理逻辑 }</code>，否则 Worker 这个保安就不认识它，会按照老规矩报错。</li>
-</ul>
-<hr>
-<blockquote>
-<p>当你读完这篇指南，无论你看到哪个仓库的代码，只要牢记：<strong>VPS 负责脏活累活和写，Worker 负责分发和拦缓存</strong>，你就已经是一个成熟的 RomanceSpace 架构师了。</p>
-</blockquote>
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>架构师入场必读手册 (SaaS笔记版)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #fff;
+        }
+
+        h1 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
+        }
+
+        h3 {
+            margin-top: 25px;
+            color: #2563eb;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+            margin: 15px 0;
+            position: relative;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+        }
+
+        pre code {
+            color: inherit;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            border-radius: 4px;
+            color: #166534;
+            margin: 20px 0;
+        }
+
+        .danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            margin: 20px 0;
+            color: #991b1b;
+            border-radius: 4px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .card {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin: 12px 0;
+            background: #f8fafc;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📖 RomanceSpace 开发者终极入场券 (架构笔记)</h1>
+    <p>欢迎来到高并发、低成本、高净值的系统架构！不要被它庞大的五大仓库体系吓到。所有的组件只服务于一个核心思想。</p>
+
+    <div class="note">
+        <strong>💡 读写分离 & 边缘存储 (核心分析)：</strong><br>
+        传统的单体网站，几万人进去就把数据库挤炸了。而我们做的是<strong>降维打击</strong>：“让小服务器安安静静排队造死页面（写），让全球最大的 CDN 替我们分发这些页面给粉丝看（读）！”
+    </div>
+
+    <h2>一、 四大山头的通力合作 (如何做)</h2>
+
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>🎨 模板样板间 (Templates)</strong><br>
+            装潢队的材料库。由一堆极度古早、纯天然无污染的 HTML/CSS/JS 组成。为了让 VPS 能直接用正则暴击它，我们禁用了任何华丽的 Webpack 打包手段。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>🖥️ 前端大堂 (Frontend)</strong><br>
+            用户充值、选购、填表的地方。利用最新的 <strong>BSR (浏览器渲染)</strong> 技术，在用户修改词句时，无需向服务器发请求，而是把模板骨架拿到本地 Iframe 里一毫秒变幻出预览图。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+            <strong>⚙️ 后端加工厂 (Backend)</strong><br>
+            全村唯一的写权限拥有者。为了极致节省大厂的额度，我们连封存黑名单词汇这种事都不敢天天读库。而是设计了“零配额消耗体系”，将黑名单缓存在 VPS 的 V8 引擎内存里，直到管理员手动下派雷达通知才更新。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+            <strong>🛜 边缘网关 (Worker)</strong><br>
+            最凶狠的保安大队。百万粉丝汹涌而来，只在第一个人访问时去 R2 仓库拿了次原件。保安们给文件盖上一个长达一小时（甚至七天）的 <code>Cache-Control</code> 印章，余下 9999
+            人全在半路被按头截胡，看到了免费的缓存结果。
+        </div>
+    </div>
+
+    <h2>二、 作为开发者，我本地怎么联调？ (实战指南)</h2>
+
+    <div class="card">
+        <h3>第一步：唤醒沉睡的加工厂</h3>
+        <p>进入 <code>RomanceSpace-Backend</code> 文件夹。</p>
+        <pre><code>npm install
+# 确保你配置好了 .env 密钥 (包含 Supabase & R2)
+npm run dev</code></pre>
+        <p>大掌柜在 <code>localhost:3000</code> 醒了。</p>
+    </div>
+
+    <div class="card">
+        <h3>第二步：把迎宾大礼堂支楞起来</h3>
+        <p>进入 <code>RomanceSpace-Frontend</code> 文件夹。</p>
+        <pre><code>npm install
+npm run dev</code></pre>
+        <p>大礼堂在 <code>localhost:5173</code> 开门营业了。你在上面瞎点，它会自动把请求发给加工厂。</p>
+    </div>
+
+    <div class="card">
+        <h3>第三步：让保安出来巡逻</h3>
+        <p>进入 <code>RomanceSpace-Worker</code> 文件夹。</p>
+        <pre><code>npm install
+npx wrangler dev</code></pre>
+        <p>此时，你的电脑化身为宇宙级 Cloudflare 节点，模拟一切真实发版后的请求劫持和缓存策略！</p>
+    </div>
+
+    <h2>三、 系统运维的隐藏技能</h2>
+
+    <div class="danger">
+        <strong>⚠️ 零宕机封杀某个敏感前缀 (操作)</strong><br>
+        如果有人想注册 `admin.885201314.xyz`。作为站长，你不用去改源库里厚重的代码！<br>
+        1. 登录 CF Dashboard 的 KV 里，找出 `__sys__blocklist`，向 JSON 加上 `["admin", "love"]`。<br>
+        2. 给后端那台终年不关机的老迈 VPS 挂个号（Postman）:
+        <code>POST https://api.xxx.com/api/project/config/refresh-blocklist</code>带上你的超强防刷密钥。<br>
+        3. VPS 瞬间就把内存洗白重新录入了这个名单，自此全局锁死这几个名字！
+    </div>
+
+</body>
+
+</html>

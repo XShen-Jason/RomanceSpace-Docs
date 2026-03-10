@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Worker 边缘网关开发手册</title>
+    <title>Worker 边缘网关开发手册 (SaaS笔记版)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -62,6 +62,15 @@
             color: #166534;
         }
 
+        .danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            margin: 20px 0;
+            color: #991b1b;
+            border-radius: 4px;
+        }
+
         .success {
             background: #f0fdf4;
             border-left: 4px solid #10b981;
@@ -92,115 +101,72 @@
             flex-shrink: 0;
             margin-top: 2px;
         }
-
-        .copy-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #cbd5e1;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .copy-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-
-        .copy-btn.copied {
-            background: #10b981;
-            border-color: #10b981;
-            color: white;
-        }
     </style>
 </head>
 
 <body>
 
-    <h1>🌐 Worker 边缘网关 (高速分发者) 开发手册</h1>
+    <h1>🌐 Worker 边缘网关原理 (初学者笔记)</h1>
+
+    <p>做为五大仓库的守门员，<code>RomanceSpace-Worker</code> 是一个部署在 Cloudflare 全球几十万个节点上的无服务器函数 (Serverless
+        Function)。你要记住的唯一偶像是：<strong>“天下武功，唯快不破！”</strong></p>
 
     <div class="note">
-        <strong>💡 重要的系统常识提醒：</strong><br>
-        打开任一生成的专属网站链接，本质就是您的浏览器发出的请求打到了 Worker 这个大管家上。在五大仓库中，<code>RomanceSpace-Worker</code>
-        是一个只读的高速入口，<strong>一旦您打开网址，等效于请求直接开始接受 Worker 的处理！</strong>
+        <strong>💡 这是个什么角色？ (分析)</strong><br>
+        每次有人在手机上打开 `xiaoming.885201314.xyz`，请求不会飘洋过海飞到我们的 VPS 里，而是瞬间被离用户最近的 Cloudflare 节点（比如上海、东京、硅谷）拦截。Worker
+        就是跑在这个节点上的“小保安”。它唯一的职责就是：**光速找网页，然后甩给用户。**
     </div>
 
-    <p>为了保障毫秒级别的相应速度，它不参与任何内容的渲染，它的配置由其目录下的 <code>wrangler.toml</code> 进行授权。通过 <code>kv_namespaces</code> 绑定验证簿，通过
-        <code>r2_buckets</code> 绑定大货仓。</p>
+    <h2>一、 核心分发四大绝招 (流程解析)</h2>
 
-    <h2>一、核心源码流程（分发器运行解析）</h2>
+    <p>当几万个吃瓜群众同时涌入一个小网页时，Worker 凭借以下四道防线，硬扛下所有流量：</p>
 
     <div class="flow-step">
         <div class="flow-num">1</div>
         <div>
-            <strong>步骤 1：主域名分化与拦截</strong><br>
-            <em>举例</em>：当流量为 <code>romance.com</code> 根域名时，执行纯净跳转重定向至 <code>www.885201314.xyz</code>
-            （主平台）。一旦为带有三级标识的（如：<code>xiaoming.romance.com</code>），就进入极速检查阶段。
+            <strong>超级大坝：判断 URL (主路由分化)</strong><br>
+            <em>动作</em>：一看访问的是主域名 <code>885201314.xyz</code>，直接踢走，301 重定向到 <code>www.885201314.xyz</code>（前端主站）。<br>
+            一看访问的是静态资源 <code>/assets/*</code>，直接给它加上 7 天不死缓存，让浏览器自己去吞。<br>
+            一看是个子域名 <code>xiaoming</code>，进入下一道防线。
         </div>
     </div>
-    <pre><code>// 根域名识别判定代码块样例
-const url = new URL(request.url);
-const hostname = url.hostname;
-
-if (isMainDomain(hostname)) {
-    return Response.redirect(`https://www.885201314.xyz${url.pathname}`, 301);
-}
-return handleSubdomainRequest(request, subdomain, env, ctx);</code></pre>
-
-    <h2>二、三级大坝（抗住 100% 极速并发展示）</h2>
 
     <div class="success">
-        <strong>🧱 第 1 级缓存：Cache API (橱窗展示门面)</strong><br>
-        每次拿到结果后，都会通过 <code>const cache = caches.default</code> 进行一次存储。如果是热门网站（如已经被人打开了），Worker 刚刚一接手便直接原路以 0ms
-        返回网页，根本不往下运行任何代码。
+        <strong>🧱 第 1 级拦截：Cache API (橱窗展示)</strong><br>
+        如果之前有人看过“小明”的网页，Worker 内存橱窗里已经缓存了一份。只要没过期（1小时内），Worker 立刻以 <b>0ms</b> 甩出这份拷贝，这叫“边缘命中 (Edge Hit)”，完全不烧任何数据库额度。
     </div>
 
     <div class="success">
-        <strong>🧱 第 2 级鉴权：KV Lookup (小本子挂号)</strong><br>
-        只有当第1级由于初次访问没命中时，它才会通过调用向 Cloudflare 绑定的高速 KV 发起询价：要求给出是否有这个人存在的数据字典。<br>
-        <code>const projectConfigStr = await env.ROMANCESPACE_KV.get(subdomain);</code>
+        <strong>🧱 第 2 级鉴权：KV Lookup (翻小本子)</strong><br>
+        如果橱窗里没有，Worker 会掏出随身带的 KV 小本子查一下：“小明在不在咱们系统里？”如果查无此人，或者账号被封，直接送客 (404 / 403)。如果在，那就知道了小明用的是什么模板。
     </div>
 
     <div class="success">
-        <strong>🧱 第 3 级提货：R2 Bucket (永久冷库读取)</strong><br>
-        确认确实开通过这个站点，Worker 使用自身被授予的权限到 R2 请求后端早早放进来的 HTML
-        死静态文件块（<code>await env.RS_BUCKET.get(...)</code>）。取出并向第1级的展示面板填充副本。返回浏览器！
+        <strong>🧱 第 3 级提货：R2 Bucket (进冷库拿货)</strong><br>
+        小本子上说小明是 VIP，且用的是经典模板。Worker 就会拿着仓库钥匙去 R2 硬盘里，精准找出 <code>pages/xiaoming/index.html</code> 这个文件，取出来，并在橱窗 (Cache)
+        里放一份备份，最后拿给访客看。
     </div>
 
-    <h2>三、病毒式引流与动态化补刀</h2>
+    <h2>二、 动态“引流”补刀技术 (商业应用)</h2>
+
     <div class="flow-step">
         <div class="flow-num">4</div>
         <div>
-            <strong>步骤 4：追加导流超链接</strong><br>
-            <em>举例</em>：所有由底层 Backend 获取的死资源都是最纯净的。Worker 在把 R2 拿出来的 HTML
-            丢向浏览器前，以极小算力的简单正则在网页底部打上：<code>&lt;a href="跳转到主平台..."&gt;一键同款&lt;/a&gt;</code>。<br>
-            由于挂在边缘，未来推广词和落地页的修缮，我们只要在这里进行调整，全网便能在几分钟内一起生效！
+            <strong>动态修改与注入广告</strong><br>
+            <em>动作</em>：虽然存在 R2 里的 HTML 是纯静态的死文本，但 Worker 在提取出来交给用户之前，有一段神奇的过滤代码 (`HTMLRewriter`)。<br>
+            <em>效果</em>：它会在所有网页的底部，偷偷追加一行按钮：<b>“我也要免费制作同款网页 🚀”</b>。<br>
+            <strong>牛逼在哪？</strong>以后就算你要换这句广告词，或者换主站链接，你根本不用修改 R2 里的几万个网页，只要在 Worker 里改一行代码，几秒钟内全球几十万个网页全换上新广告词！
         </div>
     </div>
 
-    <script>
-        document.querySelectorAll('pre').forEach(pre => {
-            const btn = document.createElement('button');
-            btn.className = 'copy-btn';
-            btn.innerText = '复制';
-            btn.addEventListener('click', () => {
-                let codeEl = pre.querySelector('code');
-                let text = codeEl ? codeEl.innerText : pre.innerText;
-                text = text.replace(/^复制\n/, '');
-                navigator.clipboard.writeText(text).then(() => {
-                    btn.innerText = '已复制!';
-                    btn.classList.add('copied');
-                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
-                });
-            });
-            pre.appendChild(btn);
-        });
-    </script>
+    <h2>三、 这套架构的“降维打击”在哪 (总结)</h2>
+
+    <div class="danger">
+        <strong>⚠️ 零服务器压力：</strong><br>
+        由于 Worker 拦截了 100% 的查看请求，而且把静态资源缓存做到了极致。你的 VPS 从头到尾连个响声都没听见。这也就是为什么，即便全网千万级曝光，你那台可怜的 2h2g
+        小服务器也绝不会崩溃，因为它压根没有参与这场流量狂欢。这就是 SaaS 级边缘计算架构的恐怖之处。
+    </div>
+
 </body>
 
 </html>

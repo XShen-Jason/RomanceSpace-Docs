@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Backend 服务端开发手册</title>
+    <title>Backend 服务端开发手册 (SaaS笔记版)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -27,6 +27,11 @@
             color: #d97706;
             border-left: 4px solid #d97706;
             padding-left: 12px;
+        }
+
+        h3 {
+            margin-top: 20px;
+            color: #0f766e;
         }
 
         pre {
@@ -88,80 +93,101 @@
             margin-top: 2px;
         }
 
-        .copy-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #cbd5e1;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
         }
 
-        .copy-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+        th,
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: left;
         }
 
-        .copy-btn.copied {
-            background: #10b981;
-            border-color: #10b981;
-            color: white;
+        th {
+            background-color: #f8fafc;
+            color: #334155;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>⚙️ Backend 服务端开发手册 (写算力核心)</h1>
+    <h1>⚙️ Backend 服务端原理 (初学者笔记)</h1>
 
-    <p>做为五大仓库的核心，<code>RomanceSpace-Backend</code> 是运行在独立 VPS 上的 Node.js (Express) 进程。在 CQRS
-        架构中，它是绝对权威的<strong>“控制平面”与“写入引擎”</strong>。</p>
+    <p>这份笔记将带你摸透 <code>RomanceSpace-Backend</code> 仓库。如果说前端是个“傻白甜”接收员，那后端（运行在独立 VPS 上的
+        Node.js/Express）就是这个系统里**拥有生杀大权的“铁血判官”和“重体力苦口”**。在 CQRS 架构中，它是绝对权威的“控制平面”与“写入引擎”。</p>
 
     <div class="note">
-        <strong>💡 核心机制与配置 (<code>.env</code> 文件)：</strong><br>
-        传统架构容易触发 Worker I/O 和 CPU 死锁限制。Backend 通过提取 R2 文件进行正则替换，这属于重度计算操作。因此，后端的 <code>.env</code> 文件中配置了特权
-        <code>SUPABASE_SERVICE_ROLE_KEY</code> 数据库密钥和 R2 云凭据，一切高权限操作都在此收口。
+        <strong>💡 为什么这些不能放在 Cloudflare Worker 里算？ (分析)</strong><br>
+        1. <strong>安全性</strong>：Cloudflare 代码人人都能随便访问，一旦不小心暴露了数据库密钥就完蛋了。VPS 是我们自己的锁上门的屋子。<br>
+        2. <strong>性能极限</strong>：把几千字的模板跟几千字的用户数据融合（正则替换），对 Worker 来说太费 CPU，很容易撞到 Cloudflare 的 10 毫秒运算墙。让 VPS
+        这个吃苦耐劳的老黄牛来算，算完扔给网关分发，这是最高效的做法。
     </div>
 
-    <h2>一、核心源码流转步骤</h2>
+    <h2>一、 后端是怎么干活的？ (操作说明)</h2>
 
-    <p>当接收到调用请求 <code>POST /api/project/render</code> 时，后台进行以下处理：</p>
+    <p>这个 Node.js 后端平时啥也不管，就等着你前端调 <code>api.885201314.xyz</code> 里的接口办事。它办两件大事：</p>
+    <ul>
+        <li><strong>查案子与放行 (鉴权与过滤)</strong>: 检查你存不存在，钱给了没，想注册的“子域名”是不是我们内部用的（黑名单系统！）。</li>
+        <li><strong>造网页与入库 (渲染融合)</strong>: 作为系统唯一“造物主”，用自己的最高权限把最终网页造出来并入库。</li>
+    </ul>
+
+    <h2>二、 核心制版全流程 (怎样实现的)</h2>
+
+    <p>当接收到调用请求 <code>POST /api/project/render</code>（生成网页）时，后台进行以下处理：</p>
 
     <div class="flow-step">
         <div class="flow-num">1</div>
         <div>
-            <strong>步骤 1：鉴权与提取模板</strong><br>
-            <em>举例</em>：检查防刷机制后，使用后台的特权访问 R2 仓库提取出未加工的 <code>index.html</code> 和 <code>schema.json</code> 骨架资源。
+            <strong>安全过滤与黑名单拦截</strong><br>
+            <em>动作</em>：VPS 后端立马去翻自己的“大脑内存”。看这个用户请求的域名（如 `admin` 或 `api`）是不是在 <code>__sys__blocklist</code> 字典里。<br>
+            <em>结果</em>：如果是黑名单，直接扇回去报错。如果不是，进入下一步。（这段代码查内存只要 0 耗时，且不烧 KV 额度，因为我们在内存里把它长久缓存了）。
         </div>
     </div>
 
     <div class="flow-step">
         <div class="flow-num">2</div>
         <div>
-            <strong>步骤 2：急速熔铸（计算渲染）</strong><br>
-            <em>举例</em>：利用正则匹配算法，安全地在 HTML 中注入“小明”和“小红”等自定义数据，生成纯静态字符串。
+            <strong>提取原厂骨架 (取模板)</strong><br>
+            <em>动作</em>：使用后台的 Cloudflare 特权密钥，以迅雷不及掩耳之势去 R2 仓库提一个干净的 <code>index.html</code> 模板出来。
         </div>
     </div>
 
     <div class="flow-step">
         <div class="flow-num">3</div>
         <div>
-            <strong>步骤 3：多方沉淀与清障</strong><br>
-            <em>举例</em>：将这个专属的 HTML 直接写入 R2。接着将域名加入 KV 路由字典。最终命令 Cloudflare 刷掉老旧的 CDN 缓存（Purge Cache），并把源数据归档到 Supabase。
+            <strong>急速熔铸与变身 (正则计算)</strong><br>
+            <em>动作</em>：这是 VPS 唯一出力流汗的地方。它用极高强度的正则匹配算法，把原始 HTML 里像 `{{lover_name}}` 这样的占位符，全都硬编码替换成前端传来的“小红”和“小明”。
         </div>
     </div>
 
+    <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+            <strong>送进仓库，挂上路由榜</strong><br>
+            <em>动作</em>：生成的这段新 HTML 直接写死塞进 R2 (放进 `pages/xiaoming/index.html` 里！)。然后通过 SDK 告诉 Cloudflare KV：“这有个叫
+            xiaoming 的，你可以放行了”。最后把这笔交易记录记在咱们最安全的 Supabase 数据库上。
+        </div>
+    </div>
 
-    <h2>二、核心工具底层示例</h2>
-    <p>通过底层的 <code>cf.js</code> 进行 Cloudflare S3 兼容的高效推送：</p>
-    <pre><code>// utils/cf.js 推送核心样例
+    <h2>三、 核心特权与底层配置</h2>
+
+    <div class="danger">
+        <strong>⚠️ 机密重地配置 (<code>.env</code>)：</strong><br>
+        这里掌握着整个体系的命脉：<br>
+        <code>SUPABASE_SERVICE_ROLE_KEY</code> (无视权限查数据的尚方宝剑)<br>
+        <code>R2_ACCESS_KEY_ID</code> (进出云仓库的万能钥匙)<br>
+        这就是为什么前面说，所有重体力写入与查询，都只能在这里收口。
+    </div>
+
+    <p>看看底层我们是怎么暴躁推包的（<code>utils/cf.js</code> 样例）：</p>
+
+    <pre><code>// 抛送静态页面给 R2 仓库的动作
 export const putToR2 = async (key, buffer) => {
-    // 采用 AWS S3 SDK 规范来连接 Cloudflare R2
+    // 采用 AWS S3 标准流连法，打通咱们的 Cloudflare R2
     const client = new S3Client({
         region: 'auto',
         endpoint: process.env.R2_ENDPOINT,
@@ -170,32 +196,10 @@ export const putToR2 = async (key, buffer) => {
             secretAccessKey: process.env.R2_SECRET_ACCESS_KEY 
         }
     });
-    // 高并发状态下，以 buffer 流快速抛入仓库
+    // 以 Buffer 将 HTML 直接抛进去！
     await client.send(new PutObjectCommand({ Bucket, Key: key, Body: buffer }));
 }</code></pre>
 
-    <div class="danger">
-        <strong>⚠️ 绝对隔离：</strong> Frontend 乃至主站，绝对不允许直接接触这些核心凭证。所有的复杂计算、组装、推包都必须依赖 Backend API 执行。
-    </div>
-
-    <script>
-        document.querySelectorAll('pre').forEach(pre => {
-            const btn = document.createElement('button');
-            btn.className = 'copy-btn';
-            btn.innerText = '复制';
-            btn.addEventListener('click', () => {
-                let codeEl = pre.querySelector('code');
-                let text = codeEl ? codeEl.innerText : pre.innerText;
-                text = text.replace(/^复制\n/, '');
-                navigator.clipboard.writeText(text).then(() => {
-                    btn.innerText = '已复制!';
-                    btn.classList.add('copied');
-                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
-                });
-            });
-            pre.appendChild(btn);
-        });
-    </script>
 </body>
 
 </html>

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Frontend 前端界面开发手册</title>
+    <title>Frontend 前端界面开发手册 (SaaS笔记版)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -62,6 +62,15 @@
             color: #166534;
         }
 
+        .danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            margin: 20px 0;
+            color: #991b1b;
+            border-radius: 4px;
+        }
+
         .flow-step {
             display: flex;
             align-items: flex-start;
@@ -84,100 +93,103 @@
             margin-top: 2px;
         }
 
-        .copy-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #cbd5e1;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
         }
 
-        .copy-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+        th,
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: left;
         }
 
-        .copy-btn.copied {
-            background: #10b981;
-            border-color: #10b981;
-            color: white;
+        th {
+            background-color: #f8fafc;
+            color: #334155;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>🎨 Frontend 前端界面开发手册</h1>
-    <p>做为五大仓库的一员，<code>RomanceSpace-Frontend</code> 是一个纯粹的 UI 视图层 (Single Page
-        Application)。它没有任何状态留存和复杂的打包生成机制，所有业务逻辑全部通过调用 Backend API 完成。我们的核心法则是：<strong>核心逻辑绝不留在前端！</strong></p>
+    <h1>🎨 Frontend 前端原理 (初学者笔记)</h1>
+
+    <p>这份笔记将带你深入了解 <code>RomanceSpace-Frontend</code> 仓库。它是一个基于 Vite + React 构建的单页应用
+        (SPA)。你要记住的第一法则是：<strong>这是一个极其“傻白甜”的前端，所有的重活都不归它管！</strong></p>
 
     <div class="note">
-        <strong>💡 核心配置绑定 (<code>.env</code>)：</strong><br>
-        前端由于缺乏任何处理私密数据（如 KV 或 R2 的 Key）的权限，因此它的 <code>.env</code> 只有一条：<br>
-        <code>VITE_API_BASE_URL=https://api.885201314.xyz/api</code>，它唯一的任务就是呼叫这个远端计算大哥。
+        <strong>💡 为什么前端要“傻白甜”？ (分析)</strong><br>
+        前端运行在用户的手机或浏览器里，环境既不安全性能又差。如果我们把拼接网页、连接数据库的活交给前端，不仅密钥会泄露，用户手机也可能卡死。所以前端只有一个任务：**让用户点得爽，然后把填好的表单扔给后端大哥 (VPS)。**
     </div>
 
-    <h2>一、核心组件与信息交互流程流向</h2>
+    <h2>一、 前端的两大核心功能 (说明)</h2>
 
-    <p>在这个单页应用中，分为两块主要的功能页面（组件），其流向如下：</p>
+    <p>整个前端其实就两个至关重要的页面：</p>
+    <ul>
+        <li><strong>Gallery (画廊)</strong>: 逛超市。让用户看到我们系统里都有什么好看的模板（纪念日、表白、婚礼等）。</li>
+        <li><strong>Builder (工作台)</strong>: 写贺卡。用户挑好模板后，在这里上传照片、写下给另一半的悄悄话。</li>
+    </ul>
 
-    <h3>1. 画廊层展示逻辑 (Gallery.jsx)</h3>
+    <h2>二、 核心交互流程 (怎样实现的)</h2>
+
+    <p>当一个用户想要制作一个页面时，前端是这样带他跑完全程的：</p>
+
     <div class="flow-step">
         <div class="flow-num">1</div>
         <div>
-            <strong>步骤 1：同步模板素材</strong><br>
-            <em>举例</em>：页面开启加载 `useEffect` 时，呼叫核心网关 <code>GET /api/template/list</code>。
+            <strong>拉取超市货架 (Gallery)</strong><br>
+            <em>动作</em>：在画廊页面，前端向 VPS 大哥喊话：<code>GET /api/template/list</code>。<br>
+            <em>结果</em>：大哥扔回一个数组，前端用 <code>.map()</code> 循环画出一排排漂亮的模板卡片。
         </div>
     </div>
 
     <div class="flow-step">
         <div class="flow-num">2</div>
         <div>
-            <strong>步骤 2：直观卡片成型</strong><br>
-            <em>举例</em>：Backend 返回数组字典，前端遍历这些 JSON 画出精美的选项给访客选择其喜爱的排版类型。
+            <strong>进入工厂打字 (Builder - 动态表单)</strong><br>
+            <em>动作</em>：用户点进“结婚纪念日”模板。这个时候前端需要知道让用户填啥。<br>
+            <em>魔法</em>：既然前端很“傻”，它怎么知道要画几个输入框？答案是读取模板骨架里的 <code>schema.json</code>（Manifest）。如果 JSON 说里面需要
+            <code>boyName</code> 和 <code>date</code>，React 就会自动生成这两个输入框。完全不需要我们为新模板特意改前端代码。
         </div>
     </div>
 
-    <h3>2. 制作表单递交流程 (Builder.jsx)</h3>
     <div class="flow-step">
         <div class="flow-num">3</div>
         <div>
-            <strong>步骤 3：收集信息与状态聚合</strong><br>
-            <em>举例</em>：小红进入到指定的 <code>templateType</code> 表单后，利用 <code>useState</code> 绑定了自己与男友的名称：<code>boyName</code>
-            / <code>girlName</code>。
+            <strong>毫秒级自慰渲染 (BSR 预览)</strong><br>
+            <em>动作</em>：用户每打一个字，右边（或下面）的预览窗立马更新，完全不卡。<br>
+            <em>魔法</em>：前端悄悄去 VPS 下载了一个“未开光的空 HTML” (`GET /raw/:name`)。然后偷偷在浏览器本地，把用户的填的字替换进这个 HTML 字符串里，然后塞给
+            `&lt;iframe&gt;`。由于不走网络，所以速度极快（0 额度消耗）。
         </div>
     </div>
 
     <div class="flow-step">
         <div class="flow-num">4</div>
         <div>
-            <strong>步骤 4：核心触发与渲染请求</strong><br>
-            <em>举例</em>：当点击提交时，页面会被 Loading 锁定不允许连点。随后调用核心方法 <code>renderProject()</code>，开始向远端的 Backend 排队发送数据。最终当对方回复
-            200 HTTP 并且发送了网页的新版连接才算完成一次重度交互。
+            <strong>交卷付款 (Publish 提交)</strong><br>
+            <em>动作</em>：用户点“生成网页”。<br>
+            <em>结果</em>：前端把用户填的名字（如 <code>xiaoming</code> 和具体表单数据）打包成一个大包裹，<code>POST /api/project/render</code> 快递给
+            VPS。VPS 返回成功后，前端贴心地给用户跳出一个带有 <code>?preview=timestamp</code> 的绝密无缓存链接，让他能立刻欣赏杰作。
         </div>
     </div>
 
-    <h2>二、唯一的网关通信处 (api/client.js)</h2>
-    <p>为了可维护性，所有需要和 Backend 说话的代码，全部封装在这个文件里。严禁在单独的 React 组件中调用 fetch：</p>
-    <pre><code>// 核心开通函数：向 Backend 发送熔铸请求的样板
+    <h2>三、 核心通信处与安全配置</h2>
+
+    <div class="danger">
+        <strong>⚠️ 绝对隔离铁律：</strong><br>
+        前端的 <code>.env</code> 文件中，只允许有这一行代码：<br>
+        <code>VITE_API_BASE_URL=https://api.885201314.xyz/api</code><br>
+        绝不允许出现任何 <code>SUPABASE_KEY</code> 或 <code>R2_TOKEN</code>！前端只配和 VPS 也就是 <code>api.885201314.xyz</code> 直接对话。
+    </div>
+
+    <p>为了代码好维护，所有跟 VPS 大哥对话的逻辑我们都放在了统一的文件（比如 `api/client.js`）里：</p>
+
+    <pre><code>// 核心提交函数示例
 export const renderProject = async (data) => {
-    /*
-      预期 data 结构:
-      {
-        subdomain: 'xiaoming',
-        templateType: 'commemoration',
-        data: {
-            boyName: 'Jack',
-            girlName: 'Rose'
-        }
-      }
-    */
+    // 把小明填的表单 POST 过去
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/project/render`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -186,24 +198,6 @@ export const renderProject = async (data) => {
     return response.json(); 
 };</code></pre>
 
-    <script>
-        document.querySelectorAll('pre').forEach(pre => {
-            const btn = document.createElement('button');
-            btn.className = 'copy-btn';
-            btn.innerText = '复制';
-            btn.addEventListener('click', () => {
-                let codeEl = pre.querySelector('code');
-                let text = codeEl ? codeEl.innerText : pre.innerText;
-                text = text.replace(/^复制\n/, '');
-                navigator.clipboard.writeText(text).then(() => {
-                    btn.innerText = '已复制!';
-                    btn.classList.add('copied');
-                    setTimeout(() => { btn.innerText = '复制'; btn.classList.remove('copied'); }, 2000);
-                });
-            });
-            pre.appendChild(btn);
-        });
-    </script>
 </body>
 
 </html>

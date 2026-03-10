@@ -3,10 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>项目总览 - 五大核心仓库协作机制</title>
+    <title>五大仓库总览与协作 (SaaS笔记版)</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
             max-width: 900px;
             margin: auto;
             padding: 40px;
@@ -30,8 +30,8 @@
         }
 
         h3 {
-            margin-top: 25px;
-            color: #0f766e;
+            margin-top: 30px;
+            color: #2563eb;
         }
 
         pre {
@@ -41,20 +41,56 @@
             border-radius: 6px;
             overflow: auto;
             font-size: 14px;
-            margin: 15px 0;
             position: relative;
         }
 
         code {
             font-family: monospace;
             color: #be185d;
-            font-size: 0.9em;
         }
 
         pre code {
-            background: transparent;
             color: inherit;
-            padding: 0;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #166534;
+        }
+
+        .danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            margin: 20px 0;
+            color: #991b1b;
+            border-radius: 4px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
         }
 
         .card {
@@ -68,12 +104,6 @@
         .card h3 {
             margin-top: 0;
             font-size: 16px;
-        }
-
-        .card p {
-            margin: 5px 0 0;
-            font-size: 14px;
-            color: #475569;
         }
 
         .tag {
@@ -110,264 +140,109 @@
             color: #3730a3;
         }
 
-        .flow-step {
-            display: flex;
-            align-items: flex-start;
-            gap: 16px;
-            margin: 16px 0;
-        }
-
-        .flow-num {
-            background: #2563eb;
-            color: white;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 13px;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-
-        .arrow-down {
-            text-align: center;
-            color: #94a3b8;
-            font-size: 20px;
-            margin: 4px 0;
-        }
-
-        .note {
-            background: #f0fdf4;
-            border-left: 4px solid #22c55e;
-            padding: 12px 16px;
-            border-radius: 4px;
-            color: #166534;
+        table {
+            width: 100%;
+            border-collapse: collapse;
             margin: 20px 0;
         }
 
-        .copy-btn {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #cbd5e1;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
+        th,
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: left;
         }
 
-        .copy-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-
-        .copy-btn.copied {
-            background: #10b981;
-            border-color: #10b981;
-            color: white;
+        th {
+            background-color: #f8fafc;
+            color: #334155;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>🗺️ 项目总览 — 五大核心仓库协作机制</h1>
-    <p>本文档是所有技术成员加入 RomanceSpace 的<strong>第一站</strong>。平台基于极致的微仓库解耦思维（CQRS读写分离），将整个平台拆解成五个职责绝对专注的代码库。</p>
+    <h1>🗺️ 五大仓库总览与协作 (初学者笔记)</h1>
 
-    <!-- 系统的起点 -->
-    <h2>一、系统的起点：打开网址等价于访问 Worker</h2>
+    <p>这份笔记是你加入 RomanceSpace 开发团队的<strong>第一站</strong>。为了让平台跑得又快又稳，我们没有把所有代码揉在一起，而是把大象切成了五块。这就是微服务（或者说微仓库）解耦的魅力。</p>
 
     <div class="note">
-        <strong>💡 核心概念说明：</strong>由于我们将复杂的网页提前烘焙固化在了服务器中缓存，所以 <strong>打开生成的个人网页（如 `xxx.885201314.xyz`），其实相当于请求直接访问了你的
-            Worker 网关！</strong>
+        <strong>💡 为什么我们要切成五个仓库？ (分析)</strong><br>
+        俗话说“专业的人干专业的事”。如果我们把前端展示、后端合成、模板骨架全放一个仓库里，那改个按钮颜色可能都要重启整个后台服务器。拆开后，你可以只更新模板而不碰后端，只更新 Worker
+        而不碰前台，真正做到了“牵一发而不动全身”。
     </div>
+
+    <h2>一、 五大天王速查字典 (说明)</h2>
+    <p>这五个仓库是怎么像齿轮一样咬合在一起工作的呢？我们一个一个看：</p>
+
+    <div class="card">
+        <span class="tag tag-templates">📦 第一仓：模板资产库 (RomanceSpace-Templates)</span>
+        <p><strong>它是干嘛的：</strong> 切图仔的快乐老家。这里全是纯天然的 HTML、CSS 图片。没有任何复杂的数据库逻辑。</p>
+        <p><strong>怎么用：</strong> 写好模板（如 `anniversary`），配上一个 `schema.json`（告诉前端这模板需要填啥字），然后上传。后端在最后时刻会来这儿偷师（提取骨架）。</p>
+    </div>
+
+    <div class="card">
+        <span class="tag tag-frontend">🎨 第二仓：前端 UI 控制台 (RomanceSpace-Frontend)</span>
+        <p><strong>它是干嘛的：</strong> 全局的总管面板。这就是用户看到的“挑选模板、填字保存”的那个可视化网页。</p>
+        <p><strong>运作秘籍 (BSR)：</strong> 用户在填字时，它会极其聪明地把模板在浏览器里自己渲染出来（用 iframe），绝不骚扰后端。等用户点保存了，它才会拿着整理好的数据去敲后端的大门。</p>
+    </div>
+
+    <div class="card">
+        <span class="tag tag-backend">⚙️ 第三仓：后端苦力 (RomanceSpace-Backend)</span>
+        <p><strong>它是干嘛的：</strong> 唯一的掌控大权的“写入引擎”。运行在 VPS 上，手握天下兵马大权（数据库和 R2 密钥）。</p>
+        <p><strong>运作职责：</strong> 它平时都在休息。一旦前端接到用户提交的表单敲门，它立刻苏醒，查黑名单、去模板库拿骨架、用正则把用户的字刻进 HTML 里，最后存入 R2 仓库并记录数据库。干完活继续睡。
+        </p>
+    </div>
+
+    <div class="card">
+        <span class="tag tag-worker">🌐 第四仓：边缘网关 (RomanceSpace-Worker)</span>
+        <p><strong>它是干嘛的：</strong> 站岗的小保安。部署在 Cloudflare 的几十万个节点上，挡在所有外部访客的最前面。</p>
+        <p><strong>运作职责：</strong> 全网百万人同时看网页，流量全砸它头上。它负责“只读不写”，看一眼 KV 名单，有这个网页就去 R2 或者自己的兜里（强缓存）掏出来还给访客。它完全不认识后端的苦力。</p>
+    </div>
+
+    <div class="card">
+        <span class="tag tag-docs">📄 第五仓：文档藏经阁 (RomanceSpace-Docs)</span>
+        <p><strong>它是干嘛的：</strong> 就是你现在看的这个玩意。</p>
+    </div>
+
+    <h2>二、 一个完整的生命周期 (流程解析)</h2>
+
+    <p>让我们看看，当一个男孩“小明”要给女朋友做网页时，这五个仓库是怎么配合的：</p>
 
     <div class="flow-step">
         <div class="flow-num">1</div>
         <div>
-            <strong>第一步：网关解析接入请求</strong><br>
-            <em>举例</em>：当全网几十万群众同时在浏览器中敲下并回车 <code>https://love.885201314.xyz</code>，泛域名 DNS 自动将请求拦截并转交给
-            <code>RomanceSpace-Worker</code>。
+            <strong>小明打开浏览器，进入 Frontend (第二仓)</strong><br>
+            他看中了 <code>Templates (第一仓)</code> 里的“纪念日”模板。前端自动读取该模板的 <code>schema.json</code> 给他生成了输入框。
         </div>
     </div>
-    <div class="arrow-down">↓</div>
-    <div class="flow-step">
-        <div class="flow-num">2</div>
-        <div>
-            <strong>第二步：路由侦测与直读反馈</strong><br>
-            <em>举例</em>：Worker 不处理任何花里胡哨的代码，直接询问 KV：“love 前缀有绑定页面吗？”得知后立马去后勤（R2 存储器）搬走静态 HTML 返回给
-            <code>love.885201314.xyz</code> 给观众看，这便实现了极限的高并发防御。
-        </div>
-    </div>
-
-    <!-- 五大仓库 -->
-    <h2>二、五大核心仓库速查与核心配置（职责流转机制）</h2>
-
-    <p>通过组合下面的五个仓库，系统完成了一条：“发布->解析->写入->边缘分发”的完整闭环。</p>
-
-    <div class="card">
-        <span class="tag tag-templates">📦 模板资产仓 - RomanceSpace-Templates</span>
-        <p><strong>【核心职责】</strong></p>
-        <div class="flow-step">
-            <div class="flow-num" style="background: #3730A3;">✓</div>
-            <div><strong>步骤记录</strong>：切图工程师编写纯HTML、CSS，并在上传。它没有复杂的运行环境，完全与主系统解耦。独立被 GitHub 的 CICD 控制流上传到平台。<br>
-                <em>举例</em>：开发者小红新建 <code>flower_theme</code> 并加入动画样式，通过 <code>git push</code> 后被纳入平台模板库中。
-            </div>
-        </div>
-        <p><strong>【核心配置举例】</strong>在模板内的 <code>schema.json</code> 声明核心的数据槽：</p>
-        <pre><code class="language-json">{
-  "static": false,
-  "fields": [
-    { "key": "lover_name", "type": "string", "default": "宝贝" }
-  ]
-}</code></pre>
-    </div>
-
-    <div class="card">
-        <span class="tag tag-frontend">🎨 前端 UI 仓 - RomanceSpace-Frontend</span>
-        <p><strong>【核心职责】</strong></p>
-        <div class="flow-step">
-            <div class="flow-num" style="background: #166534;">✓</div>
-            <div><strong>步骤呈现</strong>：基于 Vite React 的管理系统，供大盘使用者进行挑选模板与写入文字。仅仅进行只读页面的展示并呼叫后端 API。<br>
-                <em>举例</em>：表白者进入主页，在输入框填写了 <code>lover_name</code> 为“小红”，点击提交后前端使用 <code>fetch</code> 将指令推发给后台。
-            </div>
-        </div>
-        <p><strong>【核心配置举例】</strong>根路径的 <code>.env</code> 文件存放请求的统一域前缀：</p>
-        <pre><code class="language-env"># 指向 VPS 服务的后端入口点
-VITE_API_BASE_URL=https://api.885201314.xyz/api</code></pre>
-    </div>
-
-    <div class="card">
-        <span class="tag tag-backend">⚙️ 后端承重仓 - RomanceSpace-Backend</span>
-        <p><strong>【核心职责】</strong></p>
-        <div class="flow-step">
-            <div class="flow-num" style="background: #881337;">✓</div>
-            <div><strong>步骤融铸</strong>：作为唯一的掌控大权的“写入引擎”，它将前端收集到的参数、存储的模板融合成具体的 HTML 文件。并将生成的 HTML 覆盖进 R2 并记录。<br>
-                <em>举例</em>：VPS 后台获取到刚才的请求，拼凑成带名字的 HTML，调用 SDK 执行存储动作（保存到 <code>project_{id}.html</code>）。
-            </div>
-        </div>
-        <p><strong>【核心配置举例】</strong>系统特权核心变量全部挂载至 <code>.env</code> 文件，绝不可外泄：</p>
-        <pre><code class="language-env"># 超高权 Database Token
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=ey... 
-
-# Cloudflare 管理权调用密钥
-R2_ACCESS_KEY_ID=xxx
-R2_SECRET_ACCESS_KEY=xxx
-CF_ACCOUNT_ID=xxx</code></pre>
-    </div>
-
-    <div class="card">
-        <span class="tag tag-worker">🌐 边缘网关仓 - RomanceSpace-Worker</span>
-        <p><strong>【核心职责】</strong></p>
-        <div class="flow-step">
-            <div class="flow-num" style="background: #713F12;">✓</div>
-            <div><strong>步骤宣发</strong>：作为整个微服务流水线的最后一端。正如“一”中所述，它是打开网站时直面全网络访客的读取缓冲大坝。没有写权限，仅对 CDN 进行路由指派与资源派发。<br>
-                <em>举例</em>：小红的好友们通过连接查看网页时，均不麻烦后端服务器操作。Worker 会从 CDN 或底层 R2 读取文件缓存 1 小时后给访客展示。
-            </div>
-        </div>
-        <p><strong>【核心配置举例】</strong>通过 <code>wrangler.toml</code> 绑定并授权外部 Cloudflare 内线资源的调用接口：</p>
-        <pre><code class="language-toml">name = "romancespace-worker"
-main = "src/index.js"
-
-# 绑定系统路由 KV 
-kv_namespaces = [
-  { binding = "ROMANCESPACE_KV", id = "xxx" }
-]
-
-# 允许从指定水桶读取生成的 HTML 模块
-[[r2_buckets]]
-binding = "ROMANCESPACE_R2"
-bucket_name = "romancespace-pages"</code></pre>
-    </div>
-
-    <div class="card">
-        <span class="tag tag-docs">📄 文档资料仓 - RomanceSpace-Docs</span>
-        <p><strong>【核心职责】</strong></p>
-        <div class="flow-step">
-            <div class="flow-num" style="background: #1E3A8A;">✓</div>
-            <div><strong>步骤说明</strong>：开发者阅读这套系统逻辑的书籍集合（你当然正身处其中）。<br>
-                <em>举例</em>：当新的业务接口增加时，开发同学在这增加 HTML 然后由 Git 被动推送展示。
-            </div>
-        </div>
-    </div>
-
-
-    <h2>三、核心 API 工作机制与业务调用</h2>
-
-    <p>为了使上述 5 大模块产生联动，通常使用 REST API 在前端至后端传递重要指令。这里列举系统内核心的<strong>生成网站 API</strong>进行释义：</p>
-
-    <div class="flow-step">
-        <div class="flow-num">1</div>
-        <div>
-            <strong>请求构建阶段 (Request)</strong><br>
-            <em>举例</em>：当所有的参数组装完毕后，前端采用 <code>POST</code> 途径向后端发送以下结构的 JSON 数据报文进行核心渲染呼叫：
-        </div>
-    </div>
-    <pre><code class="language-javascript">// 前端调用的接口地址
-const ENDPOINT = "https://api.885201314.xyz/api/project/render";
-
-// 发送的配置数据体，您可以点击复制该测试样例！
-const payload = {
-  "templateId": "my_card",     // 需要采用的模板
-  "domain": "love",            // 要求的二级访问子域名前缀
-  "data": {                    // 对应该模板 Schema 的真实数据
-    "lover_name": "小红",
-    "paragraphs": ["我爱你", "长长久久"]
-  }
-};
-
-fetch(ENDPOINT, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(payload)
-});</code></pre>
 
     <div class="flow-step">
         <div class="flow-num">2</div>
         <div>
-            <strong>后台执行并反馈 (Response)</strong><br>
-            <em>举例</em>：后端经过数秒的渲染和分发后，返回代表操作闭环成功的数据结构。并赋予该网站实时去缓存的强制查看（预览）权：
+            <strong>小明填字，疯狂预览</strong><br>
+            他在前端狂敲键盘。前端通过 BSR 技术在本地给他实时展示效果（0 服务器消耗）。
         </div>
     </div>
-    <pre><code class="language-json">{
-  "success": true,
-  "message": "静态部署成功并刷新边缘服务器！",
-  "data": {
-     "previewUrl": "https://love.885201314.xyz?preview=1710000000"
-  }
-}</code></pre>
 
-    <script>
-        // 为页面注入友好的“一键点击复制”按钮动作，极度便利化后续相关区块借用 
-        document.querySelectorAll('pre').forEach(pre => {
-            const btn = document.createElement('button');
-            btn.className = 'copy-btn';
-            btn.innerText = '复制';
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+            <strong>小明打完收工，点击提交！</strong><br>
+            数据被 <code>POST /api/project/render</code> 扔给了 <code>Backend (第三仓)</code>。<br>
+            后端开始拼凑，把小明的悄悄话写死在一个 HTML 里，并存入 R2 的 <code>pages/xiaoming/index.html</code> 路径下。
+        </div>
+    </div>
 
-            btn.addEventListener('click', () => {
-                let text = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
-                // 去除可能意外获取的按钮自身遗留的“复制”明文前缀字符
-                text = text.replace(/^复制\n/, '');
+    <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+            <strong>小明把 <code>xiaoming.xxx.com</code> 发到了朋友圈</strong><br>
+            几万个朋友点开网址，请求砸向了 <code>Worker (第四仓)</code>。<br>
+            小保安一看：“有的有的！”直接从 R2（甚至从边缘内存缓存里）拿出那个 HTML 给网民看。
+        </div>
+    </div>
 
-                navigator.clipboard.writeText(text).then(() => {
-                    btn.innerText = '已复制!';
-                    btn.classList.add('copied');
-                    setTimeout(() => {
-                        btn.innerText = '复制';
-                        btn.classList.remove('copied');
-                    }, 2000);
-                });
-            });
-            pre.appendChild(btn);
-        });
-    </script>
 </body>
 
 </html>

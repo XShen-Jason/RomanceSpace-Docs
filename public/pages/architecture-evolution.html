@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>核心架构演进：SaaS 级重构笔记</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 40px;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #fff;
+        }
+
+        h1 {
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #1e3a8a;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #d97706;
+            border-left: 4px solid #d97706;
+            padding-left: 12px;
+        }
+
+        h3 {
+            margin-top: 30px;
+            color: #2563eb;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow: auto;
+            font-size: 14px;
+            position: relative;
+        }
+
+        code {
+            font-family: monospace;
+            color: #be185d;
+        }
+
+        pre code {
+            color: inherit;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 12px 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #166534;
+        }
+
+        .danger {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            margin: 20px 0;
+            color: #991b1b;
+            border-radius: 4px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .flow-num {
+            background: #2563eb;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 13px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #334155;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>👑 核心架构演进：满分 SaaS 级重构笔记</h1>
+
+    <p>这份笔记记录了 RomanceSpace 从早期单点渲染，跨越到<strong>“生产级 SaaS
+            架构”</strong>的核心过程。无论你是刚接手项目的新人，还是想要摸清底层逻辑的开发伙伴，这篇大白话笔记都能帮你快速理清思路。</p>
+
+    <div class="note">
+        <strong>💡 我们的核心口号：Edge First + Static Generation + Browser Builder</strong><br>
+        简而言之：<strong>“用户访问绝不碰 VPS，编辑器全靠浏览器算，黑名单做到零额度消耗！”</strong>
+    </div>
+
+    <h2>一、为什么我们要改架构？（痛点在哪）</h2>
+    <p>早期的 RomanceSpace 就像一个传统饭店：客人（用户）一来，厨师（VPS 服务端）就要现炒现卖（动态拼接 HTML）。这导致了三个问题：</p>
+    <ul>
+        <li><strong>VPS 压力大：</strong>人一多，2h2g 的小机器根本扛不住。</li>
+        <li><strong>预览卡顿：</strong>用户在网页上改了一句话，不仅 VPS 要算一次，网页的 CSS 还经常因为路径不对而加载失败。</li>
+        <li><strong>费用风险：</strong>Cloudflare R2 和 KV 的读取额度，随时可能因为接口乱调而超标。</li>
+    </ul>
+
+    <h2>二、四大“天王级”技术改造（已实装）</h2>
+    <p>为了解决上述痛点，我们彻底重写了整个架构底座，分为以下四个维度的超级优化：</p>
+
+    <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+            <strong>优化一：R2 存储“目录化” & 漂亮 URL</strong><br>
+            <em>以前我们是怎么存的？</em> 把网页存成 <code>pages/anna.html</code>，用户访问
+            <code>anna.885201314.xyz/anna.html</code>，很丑且无法归档图片。<br>
+            <em>现在怎么存？</em> 我们统一改为了 <strong><code>pages/anna/index.html</code></strong>。<br>
+            <strong>好处：</strong>实现了伪静态的整洁 URL <code>anna.885201314.xyz/</code>，并且以后如果 <code>anna</code>
+            想传自己的个人照片，可以直接存进这个专属目录里！
+            <br><em>*注：Worker 路由里依然保留了老代码的 Fallback，以前生成的 <code>.html</code> 老页面依然保证能打开，不会断联。</em>
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+            <strong>优化二：Browser-Side Rendering (BSR) 毫秒级防爆预览</strong><br>
+            <em>什么是 BSR？</em> 把渲染的活儿全部交给用户的浏览器（前端 React）来做。<br>
+            现在，当前端 Builder 打开一个模板时，它会偷偷调用 <code>/api/template/raw/anniversary</code> 去拿一次纯净版 HTML（这个接口还在 VPS 端加了
+            <code>Cache-Control: 3600</code>，防刷爆 R2）。<br>
+            然后用户打字时，前端用 JS 在本地进行字符串替换，把结果塞进页面里的一个 <code>iframe</code>。不管用户鼠标怎么点，<strong>1 个字节都不会发往后端</strong>，彻底 0
+            延迟！<br>
+            <strong>魔法细节 <code>&lt;base&gt;</code> 标签：</strong>为了让 CSS 和图片不丢失，我们在塞进 iframe 之前，会动态给 HTML 的头部注入一句
+            <code>&lt;base href="https://romancespace.885201314.xyz/assets/anniversary/"&gt;</code>，完美解决所有相对路径失效的灵异事件。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+            <strong>优化三：边缘资产的“变态级强缓存”</strong><br>
+            我们的 Worker 在拦截 <code>/assets/*</code> 流量时，不再只是单纯转发，而是加上了高达 <strong>7天（max-age=604800）</strong>的强缓存头。<br>
+            <strong>好处：</strong>全球 CDN 节点帮你扛走了 99.9% 的 CSS、JS 和图片流量，连 R2 都收不到请求，真·不讲武德的省钱法。<br>
+            <em>那用户怎么看最新版页面？</em>
+            在最终保存提交后，按钮会自动跳转到带有时间戳的特殊地址：<code>anna.885201314.xyz/?preview=1710000000000</code>，时间戳能暴力击穿一切旧缓存，立竿见影。
+        </div>
+    </div>
+
+    <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+            <strong>优化四：DNS 安全与无感“零额度”黑名单</strong><br>
+            我们想防住哪个调皮的用户注册 <code>api.885201314.xyz</code> 把主干道给占了。所以我们在 Cloudflare KV 设了一个 <code>__sys__blocklist</code>
+            字典。<br>
+            <em>如果用户每次创建都要去读 KV，每天 10 万次的免费读取不是很快就烧光了吗？</em><br>
+            <strong>我们的神仙设计：动态内存缓存！</strong><br>
+            VPS 在启动的一瞬间，只读 <strong>1</strong> 次 KV，然后把它永久存在 Node.js 的变量（内存）里。接下来有 100 万个用户点击创建，服务端永远只看内存，<strong>0 次 KV
+                网络请求</strong>！<br>
+            <em>那管理员怎么加黑名单新词？</em><br>
+            管理员去 CF 界面改完 KV 后，只需要调一下我们预留的 <code>POST /api/project/config/refresh-blocklist</code> 这个隐藏接口，VPS
+            就会去老老实实再拉一遍数据并重新锁死在内存里。
+        </div>
+    </div>
+
+    <h2>三、全景流量分析 (小白秒懂版)</h2>
+
+    <table>
+        <tr>
+            <th>场景</th>
+            <th>走的方向 (流量从哪过)</th>
+            <th>VPS 的 CPU 在干嘛？</th>
+            <th>R2 有额度消耗吗？</th>
+        </tr>
+        <tr>
+            <td>普通访客看网页</td>
+            <td>用户 ➔ Cloudflare Edge ➔ R2 (命中缓存直接返回)</td>
+            <td>0%（完全不知道有人访问）</td>
+            <td>极少（只有第一次读取消耗）</td>
+        </tr>
+        <tr>
+            <td>用户进入编辑器打字</td>
+            <td>用户的 Chrome 浏览器狂奔</td>
+            <td>0%（岁月静好）</td>
+            <td>无</td>
+        </tr>
+        <tr>
+            <td>用户点击“更新保存”</td>
+            <td>用户 ➔ VPS ➔ API 写库 ➔ R2 更新</td>
+            <td>微量（就核对一下权限写个文件便下班）</td>
+            <td>1次 Class A 写入操作</td>
+        </tr>
+    </table>
+
+    <div class="danger">
+        <strong>⚠️ 开发者红线记录：</strong>
+        如果你要在 `docs` 之外再加一个独立部署的网页应用（比如挂在 Cloudflare Pages 上的 `admin.885201314.xyz`），<strong>第一件事必须是把 admin 加入到 KV
+            黑名单并执行 Refresh 接口</strong>！因为 Cloudflare Pages 的路由拦截优先级极高，如果不加黑名单被用户注册到了，系统数据库和实际渲染效果就会出现严重分裂。
+    </div>
+
+    <h2>四、总结</h2>
+    <p>在这个这套架构下：</p>
+    <ul>
+        <li><strong>VPS (服务器)</strong>：退居幕后，只负责接收你确认无误的最后一次“写入”盖章。</li>
+        <li><strong>Worker (旁路由)</strong>：化身最强前台，用变态级的缓存拦截所有白嫖流量。</li>
+        <li><strong>Browser (浏览器)</strong>：承担了所有繁重的实时渲染工作。</li>
+    </ul>
+    <p>RomanceSpace 由此真正毕业，成为一个成本趋近于零、支撑万级真实用户的轻量化浪漫平台。</p>
+
+</body>
+
+</html>

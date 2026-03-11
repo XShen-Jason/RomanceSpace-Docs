@@ -190,6 +190,16 @@
         </div>
     </div>
 
+    <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div>
+            <strong>优化五：全栈同服 Nginx 网关（绝杀 CORS）</strong><br>
+            <em>以前的架构痛点：</em> 前端挂在 Cloudflare Pages，后端在境外 VPS，两者通信需要走公网并忍受跨域 (CORS) 困扰与 DNS 握手延迟。<br>
+            <em>终极形态：</em> 我们将前端代码物理打包进了同一台 VPS，并用 Nginx 充当大总管。通过 <code>location /api/ { proxy_pass ... }</code> 的规则，前端发出的相对路径 <code>/api/...</code> 请求，会被 Nginx 用极其变态的内网极速秒塞给后端的 3000 端口。<br>
+            <strong>好处：彻底告别跨域配置、零 DNS 连结时延、再也不用针对测试服正式服配置前端 <code>.env</code> 变量，开发部署极其丝滑。</strong>
+        </div>
+    </div>
+
     <h2>三、全景流量分析 (小白秒懂版)</h2>
 
     <table>

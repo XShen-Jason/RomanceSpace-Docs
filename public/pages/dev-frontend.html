@@ -179,18 +179,21 @@
     <h2>三、 核心通信处与安全配置</h2>
 
     <div class="danger">
-        <strong>⚠️ 绝对隔离铁律：</strong><br>
-        前端的 <code>.env</code> 文件中，只允许有这一行代码：<br>
-        <code>VITE_API_BASE_URL=https://api.885201314.xyz/api</code><br>
-        绝不允许出现任何 <code>SUPABASE_KEY</code> 或 <code>R2_TOKEN</code>！前端只配和 VPS 也就是 <code>api.885201314.xyz</code> 直接对话。
+        <strong>⚠️ 零配置代理铁律：</strong><br>
+        前端的 <code>.env.production</code> 文件现在<strong>完全不需要</strong>配 <code>VITE_API_BASE_URL</code>！<br>
+        代码里必须写成 <code>const BASE = import.meta.env.VITE_API_BASE_URL ?? '';</code>。<br>
+        由于前端和后端部署在同一台 VPS 上，留空就会变成相对路径请求 <code>/api/...</code>，完美的交给 Nginx 局域网分发。这也是为什么我们在生产环境能彻底告别跨域 (CORS) 报错。
     </div>
 
     <p>为了代码好维护，所有跟 VPS 大哥对话的逻辑我们都放在了统一的文件（比如 `api/client.js`）里：</p>
 
     <pre><code>// 核心提交函数示例
 export const renderProject = async (data) => {
+    // 自动判定：本地开发取 VITE_API_BASE_URL，VPS 线上自动为空，走 Nginx 相对路径
+    const apiBase = import.meta.env.VITE_API_BASE_URL ?? '';
+
     // 把小明填的表单 POST 过去
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/project/render`, {
+    const response = await fetch(`${apiBase}/api/project/render`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

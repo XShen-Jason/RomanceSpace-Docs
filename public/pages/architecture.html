@@ -177,14 +177,13 @@
     </tr>
     <tr>
       <td>1. 收集情报</td>
-      <td>Frontend (React Builder)</td>
-      <td>你在浏览器里欢快地输入信息，拖拽图片。此时全都在浏览器本地算（BSR），一毛钱不花我们服务器的。</td>
+      <td>Frontend (React Builder @ VPS)</td>
+      <td>你在浏览器里欢快地输入信息，拖拽图片。此时全都在浏览器本地算（BSR），零服务器资源消耗。虽然它由 VPS 的 Nginx 托管分发到你的手机上，但这依然是纯粹的前端应用。</td>
     </tr>
     <tr>
       <td>2. 开始制衣</td>
-      <td>Backend (VPS Node.js)</td>
-      <td>你满意了，点击了“提交”。请求被送到 `api.885201314.xyz/api/project/render`。VPS 接到数据后核对防刷、计费。然后调用强权把你的数据灌入模板里，合成一个最终版的静态网页并推送到
-        R2，同时在 KV 里登记。</td>
+      <td>Backend (Node.js @ VPS)</td>
+      <td>你满意了，点击了“提交”。请求被送到 `相对路径 /api/project/render`。Nginx 瞬间在内网将其塞给后端的 3000 端口（0 DNS 时延，无跨域问题）。后端接到数据后核对防刷、计费。然后调用强权把你的数据灌入模板里，合成一个最终版的静态网页并推送到 R2，同时在 KV 里登记。</td>
     </tr>
     <tr>
       <td>3. 全球展示</td>
@@ -195,9 +194,8 @@
   </table>
 
   <div class="danger">
-    <strong>⚠️ 注意防坑：API 独立通道</strong><br>
-    所有的后台接口都在 <code>api.885201314.xyz</code> 域名下。这个域名被我们在 DNS 里强制配成了 Proxied 并且绕过了 Worker Router 的大通配符
-    <code>*.885201314.xyz</code>，这样用户发来的登录请求、保存请求才能畅通无阻地直接找到 VPS 服务器。
+    <strong>⚠️ 注意防坑：Nginx 本地无缝转发网关</strong><br>
+    现在的架构已经把前端也迁到了 VPS 上。通过强大的 Nginx，我们在域名 <code>www.885201314.xyz</code> 上实现了**动静分离**。静态文件直接极速返回，任何以 <code>/api</code> 开头的请求被**物理局域网**级别的速度直接截获扔给后端的 3000 端口，完美避开 CORS 跨域问题。
   </div>
 
 </body>

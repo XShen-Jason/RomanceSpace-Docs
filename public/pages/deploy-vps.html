@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>RomanceSpace 全栈 VPS 部署指南</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      max-width: 900px;
+      margin: auto;
+      padding: 40px;
+      line-height: 1.7;
+      color: #1f2937;
+      background: #fff;
+    }
+
+    h1 {
+      margin-top: 0;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+      color: #1e3a8a;
+    }
+
+    h2 {
+      margin-top: 40px;
+      color: #d97706;
+      border-left: 4px solid #d97706;
+      padding-left: 12px;
+    }
+
+    h3 {
+      margin-top: 30px;
+      color: #2563eb;
+    }
+
+    pre {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 15px;
+      border-radius: 6px;
+      overflow: auto;
+      font-size: 14px;
+      position: relative;
+    }
+
+    code {
+      font-family: monospace;
+      color: #be185d;
+    }
+
+    pre code {
+      color: inherit;
+    }
+
+    .note {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      padding: 12px 16px;
+      margin: 20px 0;
+      border-radius: 4px;
+      color: #166534;
+    }
+
+    .danger {
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      padding: 12px 16px;
+      margin: 20px 0;
+      color: #991b1b;
+      border-radius: 4px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    .flow-num {
+      background: #2563eb;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th,
+    td {
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f8fafc;
+      color: #334155;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🚢 RomanceSpace 全栈 VPS 部署指南（终极新手版）</h1>
+
+  <p>本指南从零开始，教你在同一台 VPS 上部署和托管 <strong>RomanceSpace</strong> 的后端（Node.js）和前端（React），并实现最高性能的“Nginx 动静分离”和“相对路径 0 延迟调用”。</p>
+
+  <hr>
+
+  <h2>阶段一：环境准备</h2>
+  <p>如果你的 VPS 是一台纯净的 Ubuntu 系统，你需要先安装三个核心软件：Node.js, PM2, Nginx。</p>
+
+  <pre><code># 1. 更新系统并安装 Nginx 和 Git
+sudo apt update
+sudo apt install -y nginx git curl certbot python3-certbot-nginx
+
+# 2. 安装 Node.js (推荐 20.x 长期支持版)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# 3. 安装 PM2 (管理后端进程的神器)
+sudo npm install -g pm2</code></pre>
+
+  <hr>
+
+  <h2>阶段二：部署后端 (Node.js API)</h2>
+
+  <p>我们要把后端代码放在 <code>/opt/RomanceSpace-Backend</code>。</p>
+
+  <h3>1. 克隆代码与安装依赖</h3>
+  <pre><code>cd /opt
+sudo git clone https://github.com/XShen-Jason/RomanceSpace-Backend.git
+cd RomanceSpace-Backend
+
+# 安装后端依赖
+sudo npm install</code></pre>
+
+  <h3>2. 配置环境变量</h3>
+  <p>如果你还没有配置环境变量，需要去 <code>.env</code> 里填入密钥。</p>
+  <pre><code>nano .env
+
+# 在文件里填入以下必需项：
+# PORT=3000
+# SUPABASE_URL=...
+# SUPABASE_ANON_KEY=...
+# CF_ACCOUNT_ID=...
+# (等等)</code></pre>
+
+  <h3>3. 启动并守护后端进程</h3>
+  <pre><code># 启动应用，命名为 romancespace-api
+pm2 start src/app.js --name "romancespace-api"
+
+# 设置开机自启
+pm2 save
+pm2 startup</code></pre>
+  <p>此时，运行 <code>pm2 list</code> 应该能看到 <code>romancespace-api</code> 是 <strong>online</strong> 状态。后端已在 <code>:3000</code> 端口监听。</p>
+
+  <hr>
+
+  <h2>阶段三：部署前端 (React)</h2>
+
+  <p>我们要让前端和后端放在同一个 <code>/opt</code> 目录下做邻居，并且<strong>完全不需要配置 API 域名</strong>，因为我们要通过 Nginx 实现纯物理局域网转发。</p>
+
+  <h3>1. 克隆代码与安装依赖</h3>
+  <pre><code>cd /opt
+sudo git clone https://github.com/XShen-Jason/RomanceSpace-Frontend.git
+cd RomanceSpace-Frontend
+
+# 安装前端依赖
+sudo npm install</code></pre>
+
+  <h3>2. 直接构建！(核心心法：无需配 .env)</h3>
+  <p>因为我们的代码会自动回退到“相对路径”请求，所以这里极其干净，直接打包出静态文件即可：</p>
+  <pre><code>sudo npm run build</code></pre>
+  <p>打包成功后，静态文件会安静地躺在 <code>/opt/RomanceSpace-Frontend/dist</code> 里。</p>
+
+  <hr>
+
+  <h2>阶段四：Nginx 终极网关配置（最关键的一步）</h2>
+
+  <p>现在你的机器上有：</p>
+  <ul>
+    <li>跑在 3000 端口的后端 API</li>
+    <li>放在 <code>dist/</code> 里的前端静态网页文件</li>
+  </ul>
+
+  <p>我们要配置 Nginx 统管大局，做到：</p>
+  <ul>
+    <li>收发 <code>www.885201314.xyz</code> 流量：发网页。</li>
+    <li>收发 <code>www.885201314.xyz/api/...</code> 请求：转发给 3000 端口（这解决了跨域，而且省去 DNS 查 IP 的时间）。</li>
+    <li>收发 <code>api.885201314.xyz</code> 流量：转发给 3000 端口（为了兼容旧调用，或者其他直接走 API 的脚本）。</li>
+  </ul>
+
+  <pre><code>sudo nano /etc/nginx/conf.d/romancespace.conf</code></pre>
+  <p>把里面内容<strong>全部删除</strong>，严格粘贴以下内容：</p>
+
+  <pre><code># 1. 前端主站与 API 同域转发网关
+server {
+    listen 80;
+    server_name 885201314.xyz www.885201314.xyz;
+
+    # 静态文件响应 (神速)
+    location / {
+        root /opt/RomanceSpace-Frontend/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 巧妙内网转发前端来的相对 API 路径
+    location /api/ {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+    
+    # 静态资源长期硬缓存
+    location ~* \.(js|css|png|jpg|svg|woff2)$ {
+        root /opt/RomanceSpace-Frontend/dist;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+# 2. 独立 API 域名转发 (兼容层)
+server {
+    listen 80;
+    server_name api.885201314.xyz;
+
+    location / {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+
+  <p>保存退出后，执行以下命令使之生效，并挂上小绿锁 (HTTPS)：</p>
+  <pre><code># 测试语法是不是 OK
+sudo nginx -t
+
+# 重新加载
+sudo systemctl reload nginx
+
+# 获取正式 HTTPS 证书
+sudo certbot --nginx -d 885201314.xyz -d www.885201314.xyz -d api.885201314.xyz</code></pre>
+  <p><em>(如果提示让你选择，选 <code>1: Attempt to reinstall this existing certificate</code>)</em></p>
+
+  <hr>
+
+  <h2>阶段五：Cloudflare DNS 收尾</h2>
+
+  <p>在 Cloudflare 面板 -> DNS 设置里：</p>
+  <ul>
+    <li><code>A</code> 记录：<code>www</code> 指向 <code>你的VPS_IP</code> （<strong>必须灰色云朵，DNS Only</strong>）</li>
+    <li><code>A</code> 记录：<code>@</code> (885201314.xyz) 指向 <code>你的VPS_IP</code> （<strong>必须灰色云朵，DNS Only</strong>）</li>
+    <li><code>A</code> 记录：<code>api</code> 指向 <code>你的VPS_IP</code> （<strong>必须灰色云朵，DNS Only</strong>）</li>
+  </ul>
+
+  <hr>
+
+  <h2>阶段六：日后更新代码的极简指南</h2>
+
+  <p>以后当你在本地电脑写完代码提交并 Push 到 GitHub 后，在 VPS 上怎么更新？</p>
+
+  <h3>💡 更新后端：</h3>
+  <pre><code>cd /opt/RomanceSpace-Backend
+git pull origin main
+npm install
+pm2 restart romancespace-api</code></pre>
+
+  <h3>💡 更新前端：</h3>
+  <pre><code>cd /opt/RomanceSpace-Frontend
+git pull origin main
+npm install
+npm run build
+# 结束！Nginx 会自动去读最新的 dist 里的文件，什么都不用重启！</code></pre>
+
+</body>
+
+</html>

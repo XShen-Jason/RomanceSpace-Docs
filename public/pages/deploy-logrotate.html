@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <title>PM2 “防爆内存”日志切割配置指南</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      max-width: 900px;
+      margin: auto;
+      padding: 40px;
+      line-height: 1.7;
+      color: #1f2937;
+      background: #fff;
+    }
+
+    h1 {
+      margin-top: 0;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+      color: #1e3a8a;
+    }
+
+    h2 {
+      margin-top: 40px;
+      color: #d97706;
+      border-left: 4px solid #d97706;
+      padding-left: 12px;
+    }
+
+    h3 {
+      margin-top: 30px;
+      color: #2563eb;
+    }
+
+    pre {
+      background: #1e293b;
+      color: #f8fafc;
+      padding: 15px;
+      border-radius: 6px;
+      overflow: auto;
+      font-size: 14px;
+      position: relative;
+    }
+
+    code {
+      font-family: monospace;
+      color: #be185d;
+    }
+
+    pre code {
+      color: inherit;
+    }
+
+    .note {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      padding: 12px 16px;
+      margin: 20px 0;
+      border-radius: 4px;
+      color: #166534;
+    }
+
+    .danger {
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
+      padding: 12px 16px;
+      margin: 20px 0;
+      color: #991b1b;
+      border-radius: 4px;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    .flow-num {
+      background: #2563eb;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🛡️ PM2 “防爆内存”日志切割配置指南（新手版）</h1>
+
+  <p>当你的 Node.js 后端（<code>romancespace-api</code>）长期运行后，随着用户访问量的增加，<code>pm2</code> 生成的控制台日志文件会越来越大，最后可能塞满你的 VPS 硬盘，导致服务器崩溃死机。</p>
+
+  <p>为了解决这个问题，我们需要安装 PM2 官方提供的一个神器：<strong><code>pm2-logrotate</code></strong>。它会像保洁阿姨一样，每天自动帮你把旧日志打包压缩，并删除太老的日志。</p>
+
+  <hr>
+
+  <h2>步骤 1：安装日志切割插件</h2>
+
+  <p>在你的 VPS 终端（任何目录下都可以），执行以下命令来安装插件：</p>
+
+  <pre><code>pm2 install pm2-logrotate</code></pre>
+
+  <div class="note">
+    <strong>💡 注意</strong>：是 <code>pm2 install</code>，不是 <code>npm install</code>。你可能会看到屏幕快速闪过一些下载信息，最后提示 "Module downloaded successfully"。
+  </div>
+
+  <hr>
+
+  <h2>步骤 2：配置切割规则（复制粘贴即可）</h2>
+
+  <p>安装好后，我们需要告诉这位“保洁阿姨”具体的打扫规则。我们设置的规则是：<strong>每天午夜切割一次，每个文件最大 10MB，最多保留最近 7 天的日志</strong>。</p>
+
+  <p>请依次在终端中复制并按回车执行以下命令：</p>
+
+  <pre><code># 设置每个日志文件最大不能超过 10MB（如果一天内超过 10MB 也会自动切割）
+pm2 set pm2-logrotate:max_size 10M
+
+# 设置最多只保留最近的 7 份历史日志（防止占满硬盘）
+pm2 set pm2-logrotate:retain 7
+
+# 启用日志文件 gzip 压缩（极致节省空间）
+pm2 set pm2-logrotate:compress true
+
+# 每天午夜 00:00 强制进行一次日志切割
+pm2 set pm2-logrotate:rotateInterval '0 0 * * *'</code></pre>
+
+  <hr>
+
+  <h2>步骤 3：验证是否配置成功</h2>
+
+  <p>你想知道配置有没有生效？运行这行命令：</p>
+
+  <pre><code>pm2 conf</code></pre>
+
+  <p>你会看到一大串输出，只要在里面找到类似下面这样的字眼，即使顺序不一样，就说明<strong>大功告成</strong>了！</p>
+
+  <pre><code>pm2-logrotate:
+  max_size: 10M
+  retain: 7
+  compress: true
+  rotateInterval: 0 0 * * *</code></pre>
+
+  <hr>
+
+  <h2>总结</h2>
+
+  <p>到这一步，你就彻底告别硬盘和内存被日志撑爆的隐患了。PM2 每天会在后台静默工作，不需要你做任何额外维护。你的香港 VPS 现在如同铁桶一般稳定！</p>
+
+</body>
+
+</html>

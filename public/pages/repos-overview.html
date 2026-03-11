@@ -184,7 +184,7 @@
     <div class="card">
         <span class="tag tag-frontend">🎨 第二仓：前端 UI 控制台 (RomanceSpace-Frontend)</span>
         <p><strong>它是干嘛的：</strong> 全局的总管面板。这就是用户看到的“挑选模板、填字保存”的那个可视化网页。</p>
-        <p><strong>运作秘籍 (BSR)：</strong> 用户在填字时，它会极其聪明地把模板在浏览器里自己渲染出来（用 iframe），绝不骚扰后端。等用户点保存了，它才会拿着整理好的数据去敲后端的大门。</p>
+        <p><strong>运作秘籍 (BSR & VPS 托管)：</strong> 用户在填字时，它会极其聪明地把模板在浏览器里自己渲染出来（用 iframe）。虽然它是个纯粹的前端应用，但它已经被我们打包装上了 VPS，由 Nginx 直接提供极速分发。</p>
     </div>
 
     <div class="card">
@@ -229,7 +229,7 @@
         <div class="flow-num">3</div>
         <div>
             <strong>小明打完收工，点击提交！</strong><br>
-            数据被 <code>POST /api/project/render</code> 扔给了 <code>Backend (第三仓)</code>。<br>
+            数据被相对路径 <code>POST /api/project/render</code> 扔出。Nginx 瞬间把这个包裹从隔壁房间递给了 <code>Backend (第三仓)</code>。<br>
             后端开始拼凑，把小明的悄悄话写死在一个 HTML 里，并存入 R2 的 <code>pages/xiaoming/index.html</code> 路径下。
         </div>
     </div>

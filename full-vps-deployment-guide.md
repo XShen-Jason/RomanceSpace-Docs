@@ -134,6 +134,15 @@ server {
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
+
+    # 预留 /preview/ 路径直连后端渲染引擎 (解决预览空白问题)
+    location /preview/ {
+        proxy_pass         http://127.0.0.1:3000/api/template/preview/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
     
     # 静态资源长期硬缓存
     location ~* \.(js|css|png|jpg|svg|woff2)$ {

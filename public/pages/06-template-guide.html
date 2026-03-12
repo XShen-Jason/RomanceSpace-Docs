@@ -13,40 +13,42 @@
         
         <p>RomanceSpace 的生命力源于丰富多彩的模板。我们制定了极致简单的 **2.0 标准**，让不懂代码的创作者也能通过 AI 快速生成高品质模板。</p>
 
-        <h2>1. 模板目录结构</h2>
-        <p>一个标准的模板包由三个核心文件组成：</p>
-        <pre><code>my-new-template/
-├── index.html   (HTML 骨架，带注入语法)
-├── config.json  (定义用户需要填写的表单字段)
-└── thumb.jpg    (画廊预览图，建议 600x400)</code></pre>
-
-        <h2>2. 注入语法规范</h2>
-        <p>我们使用双大括号 <code>{{ variable_id }}</code> 作为占位符。后端会在渲染时执行全局替换。</p>
+        <h2>1. 模板与前端的协议 (BSR 引擎)</h2>
+        <p>我们的编辑器采用 <strong>BSR (Browser Side Rendering)</strong> 渲染。其技术桥梁如下：</p>
         <ul>
-            <li><strong>动态文字</strong>：<code>&lt;h1&gt;{{ title }}&lt;/h1&gt;</code></li>
-            <li><strong>图片 URL</strong>：<code>&lt;img src="{{ bg_image }}"&gt;</code></li>
-            <li><strong>条件样式</strong>：<code>&lt;div style="color: {{ font_color }}"&gt;</code></li>
+            <li><strong>实时抓取</strong>：当用户点击特定模板，前端通过 <code>/api/template/raw/:name</code> 获取原始 HTML。</li>
+            <li><strong>注入 &lt;base&gt;</strong>：前端动态向 HTML 头部注入 <code>&lt;base href="/assets/{name}/"&gt;</code>，这使得模板内的 CSS/图片能秒速定位到 R2 资源。</li>
+            <li><strong>正则脱水</strong>：前端直接用 JS 将 <code>{{ id }}</code> 批量替换为输入框的内容，并渲染进 <code>iframe</code>。<strong>全程不经过服务器。</strong></li>
         </ul>
 
-        <h2>3. config.json 详解</h2>
-        <p>这是生成器表单的“大脑”，定义了用户在后台能改哪些东西：</p>
+        <h2>2. 模板资产规范 (Must Have)</h2>
+        <p>每一个上架模板必须包含以下“圣三一”文件：</p>
+        <div class="note">
+            <strong>- index.html (骨架)</strong>: Mobile-First 响应式，必须包含 Viewport meta 防止缩放故障。<br>
+            <strong>- config.json (表单)</strong>: 定义 <code>fields</code>，映射后端输入框。<br>
+            <strong>- thumb.jpg (门面)</strong>: 600x400 画廊预览图。
+        </div>
+
+        <h2>3. 模板进阶：允许增加什么？</h2>
+        <p>你可以额外包含以下内容来提升表现力：</p>
+        <ul>
+            <li><strong>自研 JS (script.js)</strong>：实现复杂的互动动画（如飘落爱心、点击烟花）。</li>
+            <li><strong>自定义字体</strong>：通过 Google Fonts 引用（建议 CDN 方式）。</li>
+            <li><strong>背景音乐 (music.mp3)</strong>：利用 HTML5 <code>&lt;audio&gt;</code> 自动播放。</li>
+        </ul>
+
+        <h2>4. 变量注入详表</h2>
+        <p>常用 <code>config.json</code> 及对应的 HTML 映射：</p>
         <pre><code>{
-  "name": "极简唯美周年庆",
   "fields": [
-    {
-      "id": "title",
-      "label": "大标题",
-      "type": "text",
-      "default": "致最亲爱的你"
-    },
-    {
-      "id": "content",
-      "label": "情话内容",
-      "type": "textarea",
-      "default": "这里填入你的满腔爱意..."
-    }
+    { "id": "main_title", "type": "text", "label": "主标题" },
+    { "id": "love_bg", "type": "image", "label": "浪漫背景图" }
   ]
-}</code></pre>
+}
+
+// HTML 中使用:
+&lt;h1&gt;{{ main_title }}&lt;/h1&gt;
+&lt;body style="background: url({{ love_bg }})"&gt;</code></pre>
 
         <h2>4. AI 极速生产线</h2>
         <p>配合下方的指令，你可以让 ChatGPT 等 AI 瞬间产出完美的代码：</p>

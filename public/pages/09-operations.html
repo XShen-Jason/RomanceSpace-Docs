@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 9: 商业化运营与资源回收 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 9</div>
+        <h1>商业化运营：防作弊、回收与增长</h1>
+        
+        <p>一个健康的 SaaS 平台不仅需要强大的代码，更需要严密的商业逻辑。本章详解了 RomanceSpace 的资源管理与反作弊体系。</p>
+
+        <h2>1. 短域名稀缺性与“占位控”</h2>
+        <p><strong>域名才值钱。</strong> 为了防止恶意刷量占据极品短域名，我们实施了严格的监控：</p>
+        <ul>
+            <li><strong>心跳锁定</strong>：在域名输入框查重通过后，若用户 10 分钟内未完成正式发布，锁定的域名将强制回流到资源池。</li>
+            <li><strong>回收机制 (Recycle System)</strong>：系统每月跑一次 Cron 脚本。若免费用户的网页在过去 <strong>180 天内访客访问数为 0</strong>，系统将自动解绑该域名，清空 R2 静态文件，释放资源。</li>
+        </ul>
+
+        <h2>2. 防作弊与裂变风控 (Anti-Cheat)</h2>
+        <p>针对“刷邀请码”获取奖励的行为，我们建立了多层防御：</p>
+        <div class="flow-step">
+            <div class="flow-num">🛡️</div>
+            <div class="flow-content">
+                <strong>IP 硬核限流</strong>：同一 IP 每 24 小时仅允许注册 3 个账号，且强制集成 Cloudflare Turnstile 人机验证。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">💰</div>
+            <div class="flow-content">
+                <strong>奖励延迟下发</strong>：被邀请者 B 注册时，邀请者 A 不会立即获得奖励。只有当 B **“首次成功发布了一个非空白模板的网站”** 时，系统才会通过 Webhook 给 A 累加分佣。
+            </div>
+        </div>
+
+        <h2>3. 运营哲学：为何不限制流量？</h2>
+        <p>许多 SaaS 会限制“访问量”，但我方架构对此说 **NO**。</p>
+        <div class="note">
+            <strong>核心逻辑：</strong><br>
+            限制访问量（View）意味着 Worker 每次都要执行高昂的 KV 写入来做加法统计，这会迅速耗光我们的操作配额。相反，由于 CDN 缓存的存在，访问成本近乎零。我们应该鼓励用户传播，利用底部的引流水印带来更多注册。
+        </div>
+
+        <h2>4. 管理员黑盒 (Admin Portal)</h2>
+        <p>通过 Supabase <code>profiles</code> 表中的 <code>role: 'admin'</code> 标记，管理员可以访问 <code>/admin/upload</code> 等重型武库。这是通过 Nginx 物理隔离与后端 JWT 鉴权实现的双重保障。</p>
+
+        <p style="text-align: center; color: var(--gray); font-size: 0.85rem; margin-top: 50px;">
+            © 2026 RomanceSpace Operations. Built for Growth.
+        </p>
+
+        <div class="chapter-nav">
+            <a href="08-technical-notes.html" class="nav-link">
+                <span class="nav-label">上一章</span>
+                <span class="nav-title">Ch 8: 技术优势</span>
+            </a>
+            <div class="nav-link">
+                <!-- End of Handbook -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>

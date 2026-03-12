@@ -23,30 +23,30 @@
             数据包：<code>{ subdomain: "wedding", title: "致小红", content: "永远爱你" }</code>
         </div>
 
-        <h3>阶段 B：后端重铸 (Render & Write Phase)</h3>
-        <p>数据通过后端 API 到达 VPS。在这里，Node.js 开始执行“强权操作”：</p>
+        <h3>阶段 B：后端重铸 (Double-Track Write)</h3>
+        <p>VPS 收到请求后执行“双轨写入”以确保数据的一致性与分发的极速性：</p>
         <div class="flow-step">
             <div class="flow-num">1</div>
             <div class="flow-content">
-                <strong>注入渲染 (Hydration)</strong>：后端从 R2 抓取原始模板 <code>template/wedding/index.html</code>，将小明的话填入 `{{ title }}`。
+                <strong>Supabase (业务真理)</strong>：持久化存储项目配置（subdomain, template_id, raw_data）。这是判断权限的依据。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">2</div>
             <div class="flow-content">
-                <strong>落户 R2 (Storage)</strong>：生成成品 HTML，并存入私有云仓 <code>pages/wedding/index.html</code>。
+                <strong>R2 (分发真理)</strong>：生成成品 HTML 强行覆盖 <code>pages/{subdomain}/index.html</code>。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">3</div>
             <div class="flow-content">
-                <strong>登记 KV (Routing)</strong>：在全局路由地址簿中写下：<code>wedding => { status: active }</code>。
+                <strong>KV (路由查重)</strong>：<strong>KV 写入脱水优化</strong>。只有当首次创建或模板切换（导致路由逻辑变动）时才写 KV。普通的文字内容修改不会触发 KV 写入，从而保护 1000次/天的有限配额。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">4</div>
             <div class="flow-content">
-                <strong>入账 DB (Record)</strong>：最后在 Supabase 登记下小明的所有权。
+                <strong>CDN Purge</strong>：调用 Cloudflare API 实时秒级清除旧缓存。
             </div>
         </div>
 

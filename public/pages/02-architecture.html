@@ -43,36 +43,36 @@
         <div class="flow-step">
             <div class="flow-num">1</div>
             <div class="flow-content">
-                <strong>Frontend (平台前台)</strong>
-                React 驱动的 SPA 应用（Cloudflare Pages 部署）。负责用户操作面板、Builder 编辑器和账户管理。
+                <strong>Frontend (SPA - Cloudflare Pages)</strong>
+                完全静态化的 React 应用。职责：负责 Builder 编辑器界面、BSR 预览引擎、Gallery 展示。它不持有任何 DB/R2 密钥，纯通过 AJAX 与后端通信。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">2</div>
             <div class="flow-content">
-                <strong>Backend (写操作引擎)</strong>
-                运行在 VPS 上的 Node.js 服务。持有 DB、R2、KV 的最高写入特权。
+                <strong>Backend (API Central - VPS)</strong>
+                整个系统的“中央枢纽”。职责：唯一持有 R2/KV/DB 写入特权的单元。执行 HTML 注入渲染、域名重复性校验、CDN 缓存清除（Purge）。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">3</div>
             <div class="flow-content">
-                <strong>Worker (分发网关)</strong>
-                拦截 <code>*.885201314.xyz</code> 域名的边缘微服务。像个“小保安”一样，只负责查 KV 路由并从 R2 取货返给访客。
+                <strong>Worker (Edge Gateway - Cloudflare)</strong>
+                拦截 <code>*.885201314.xyz</code>。职责：正则校验子域名非法性、查 KV 路由、从 R2 抓取 HTML、注入安全响应头。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">4</div>
             <div class="flow-content">
-                <strong>Templates (资产库)</strong>
-                独立的 HTML/CSS 模板仓库。由 CI/CD 自动同步至 R2 的 <code>/templates</code> 目录。
+                <strong>Templates (Static Assets - R2)</strong>
+                纯 HTML/CSS 片段库。由 CI 自动同步至 R2 的 <code>/templates/</code> 目录，确保持久存储与版本隔离。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">5</div>
             <div class="flow-content">
-                <strong>Database & Auth (账房)</strong>
-                利用 Supabase (Postgres) 进行权限鉴定和原始配置数据的长久化存储。
+                <strong>Infrastructure (DB/KV/R2)</strong>
+                数据层。Supabase 负责权限与事务；R2 负责海量 HTML 文件；KV 负责全网毫秒级路由查找。
             </div>
         </div>
         <div class="flow-step">

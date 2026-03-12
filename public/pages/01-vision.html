@@ -22,37 +22,57 @@
             <em>“用户访问不碰服务器，创作过程不花流量费，静态存储不仅省钱，而且永不宕机。”</em>
         </div>
 
-        <h2>2. SaaS 商业化策略</h2>
-        <p>作为一套成熟的 SaaS，我们围绕“修改特权”和“稀缺资源”构建盈利点，而非传统的“访问流量”。</p>
+        <h2>2. SaaS 商业化逻辑与阶梯会员</h2>
+        <p>我们采取“名额”与“修改特权”为核心的阶梯收费机制。<strong>服务器不值钱，域名与修改特权才值钱。</strong></p>
         
-        <h3>流量免费，修改收费</h3>
-        <p>得益于 CQRS 架构，用户的网页一旦生成，其访问成本几乎为零。因此我们鼓励用户无限分享，利用“引流效应”扩大品牌影响力。我们限制的是：</p>
-        <ul>
-            <li><strong>写操作频率</strong>：每日内容更新次数。</li>
-            <li><strong>模板特权</strong>：解锁 3D、视差效果等高级视觉模板。</li>
-            <li><strong>资源独占</strong>：极品短域名（如 <code>love.885201314.xyz</code>）的数量。</li>
-        </ul>
+        <table>
+            <tr>
+                <th>等级</th>
+                <th>专属域名</th>
+                <th>修改限额 (Update)</th>
+                <th>核心特权</th>
+            </tr>
+            <tr>
+                <td><strong>免费用户</strong></td>
+                <td>1 个</td>
+                <td>3 次/日 (改字) / 1 次/周 (换模板)</td>
+                <td>底部显示推广链接 (裂变流量)。</td>
+            </tr>
+            <tr>
+                <td><strong>Pro 会员</strong></td>
+                <td>3 - 5 个</td>
+                <td>20 次/日 (内容) / 5 次/日 (模板)</td>
+                <td>隐藏推广链接、解锁 3D 模板。</td>
+            </tr>
+            <tr>
+                <td><strong>终身合伙人</strong></td>
+                <td>10 个</td>
+                <td>无限修改 (防刷流控)</td>
+                <td>允许绑定自定义独立域名 (CNAME)。</td>
+            </tr>
+        </table>
 
-        <h3>用户漏斗：匿名体验首位</h3>
+        <h3>核心漏斗：匿名体验优先</h3>
+        <p>工具类 SaaS 强制引导登录会导致 40% 的流量流失。我们遵循以下转化节奏：</p>
         <div class="flow-step">
             <div class="flow-num">1</div>
             <div class="flow-content">
-                <strong>完全开放的画廊</strong>
-                用户无需注册即可查看所有精美模板，降低心理负担。
+                <strong>完全开放预览 (Anonymous Builder)</strong>
+                用户直接进入 Builder，实时预览。由于采用 BSR 架构，此阶段服务器 0 成本。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">2</div>
             <div class="flow-content">
-                <strong>零门槛实时预览</strong>
-                基于 BSR 架构，用户在编辑器内填词、放图时，所有计算在本地完成。此时我们的服务器甚至不需要知道这位用户的存在。
+                <strong>情感收网 (Trigger)</strong>
+                当用户把情话写到最动人时，点击“发布”。系统此时告知：登录以永久保存并获取极短域名。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">3</div>
             <div class="flow-content">
-                <strong>发布锁定</strong>
-                只有当用户完成创作，想要获取专属网址时，才引导注册/登录，实现极高的转化率。
+                <strong>裂变奖励 (Referral)</strong>
+                鼓励老用户分享邀请码。为了防作弊，只有新用户成功发布非空网站后，邀请奖励才会下发。
             </div>
         </div>
 

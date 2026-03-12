@@ -13,49 +13,64 @@
         
         <p>本章记录了如何从零开始部署 RomanceSpace 的全栈环境，涵盖 VPS、Nginx、Cloudflare 等各个关键环节。</p>
 
-        <h2>1. 中央 API 后端 (VPS 部署)</h2>
-        <p>后端运行在专有的 Linux VPS 上，通过 PM2 进行守护，并由 Nginx 暴露 API 统一出口。</p>
+        <h2>1. 后端与前端 (全栈 VPS 动静分离)</h2>
+        <p>我们采用“邻居部署法”，前后端代码在同一 VPS 上放置。通过 Nginx 网关中转，消除跨域风险。</p>
         
-        <h3>Nginx 关键配置 (动静分离与代理)</h3>
+        <h3>Nginx 极简双向转发配置</h3>
         <pre><code>server {
     listen 80;
-    server_name www.885201314.xyz api.885201314.xyz;
+    server_name www.885201314.xyz;
 
-    # 1. 动静分离：前端 React 打包文件
+    # 1. 前端 React 静态资源
     location / {
-        root /var/www/romancespace-frontend/dist;
+        root /opt/RomanceSpace-Frontend/dist;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
 
-    # 2. 修改 API 接口中转
+    # 2. 内网直连转发 API (3000 端口)
     location /api/ {
-        proxy_pass http://localhost:3000/;
-        proxy_http_version 1.1;
+        proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;
-        # 绝杀跨域：内网中转，外部看起来是同一个域名
+    }
+
+    # 3. 模板预览直连 (BSR 骨架分发)
+    location /preview/ {
+        proxy_pass http://127.0.0.1:3000/api/template/preview/;
+    }
+    
+    # 4. 模板静态资产加速
+    location ^~ /assets/ {
+        proxy_pass http://127.0.0.1:3000;
+        # 缓存配置...
     }
 }</code></pre>
 
-        <h3>PM2 进程守卫</h3>
-        <pre><code># 在服务器项目目录下执行
-npm install
-pm2 start src/server.js --name "rs-api"
-pm2 save
-pm2 startup</code></pre>
+        <h2>2. 环境初始化指南</h2>
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+                <strong>基础依赖</strong>：安装 Node.js 20.x, PM2, Nginx, Certbot。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+                <strong>后端启动</strong>：克隆项目 -> 填入 <code>.env</code> (含 Supabase Service Key) -> <code>pm2 start src/app.js</code>。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+                <strong>前端构建</strong>：克隆项目 -> 设置 <code>.env</code> 指向 Supabase 公开 Key -> <code>npm run build</code>。
+            </div>
+        </div>
 
-        <h2>2. 边缘路由 (Worker) 部署</h2>
-        <p>Worker 部署在 Cloudflare，其核心在于正确绑定环境变量与命名空间。</p>
-        
-        <h3>部署命令</h3>
-        <pre><code>cd RomanceSpace-Worker
-npx wrangler deploy</code></pre>
-
-        <h3>权限绑定清单：</h3>
+        <h2>3. 极速更新工作流</h2>
+        <p>以后每次修改代码后，只需在 VPS 执行：</p>
         <ul>
-            <li><strong>KV Namespace</strong>: 绑定 <code>ROMANCESPACE_KV</code>，用于存储路由信息。</li>
-            <li><strong>R2 Bucket Binding</strong>: 绑定 <code>ROMANCESPACE_R2</code>，用于读取静态 HTML。</li>
-            <li><strong>Custom Domains</strong>: 将 <code>*.885201314.xyz</code> 绑定到该 Worker 上。</li>
+            <li><strong>后端</strong>：<code>git pull</code> + <code>pm2 restart romancespace-api</code>。</li>
+            <li><strong>前端</strong>：<code>git pull</code> + <code>npm run build</code> (Nginx 会自动读取最新的 dist，0 重启)。</li>
         </ul>
 
         <h2>3. 日常维护与“防爆”指南</h2>

@@ -56,7 +56,12 @@
   ]
 }</code></pre>
 
-        <h2>4. 变量注入与视觉标准</h2>
+        <h2>4. 变量注入与资源解析 (BSR 引擎)</h2>
+        <h3>自动资源映射</h3>
+        <p><strong>关键技术点：</strong> 当系统渲染你的模板时，会自动在 <code>&lt;head&gt;</code> 中注入一个 <code>&lt;base&gt;</code> 标签：</p>
+        <pre><code>&lt;base href="https://www.885201314.xyz/assets/{template_name}/"&gt;</code></pre>
+        <p>这意味着你在模板中引用的 <code>style.css</code> 或 <code>assets/logo.png</code> 不需要写全路径，系统会自动将其映射到 R2 中的正确版本目录。<strong>请确保你的模板不包含硬编码的绝对路径。</strong></p>
+
         <h3>注入语法</h3>
         <p>在 <code>index.html</code> 中，使用双大括号语法 <code>{{ id }}</code> 标记动态位置：</p>
         <pre><code>&lt;title&gt;{{ title }}&lt;/title&gt;

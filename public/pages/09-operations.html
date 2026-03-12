@@ -13,12 +13,18 @@
         
         <p>一个健康的 SaaS 平台不仅需要强大的代码，更需要严密的商业逻辑。本章详解了 RomanceSpace 的资源管理与反作弊体系。</p>
 
-        <h2>1. 短域名稀缺性与“占位控”</h2>
-        <p><strong>域名才值钱。</strong> 为了防止恶意刷量占据极品短域名，我们实施了严格的监控：</p>
+        <h2>1. 域名额度管理 (Quota Management)</h2>
+        <p>系统支持动态调整不同等级用户的域名上限，无需重启服务端。</p>
         <ul>
-            <li><strong>心跳锁定</strong>：在域名输入框查重通过后，若用户 10 分钟内未完成正式发布，锁定的域名将强制回流到资源池。</li>
-            <li><strong>回收机制 (Recycle System)</strong>：系统每月跑一次 Cron 脚本。若免费用户的网页在过去 <strong>180 天内访客访问数为 0</strong>，系统将自动解绑该域名，清空 R2 静态文件，释放资源。</li>
+            <li><strong>管理方式</strong>：在 Cloudflare KV 中的 <code>ROMANCESPACE_KV</code> 命名空间内，创建一个 Key 为 <code>__sys__quotas</code> 的 JSON 对象。</li>
+            <li><strong>配置示例</strong>：<br>
+                <code>{ "free": 1, "pro": 10, "super_vip": 50, "partner": 100 }</code>
+            </li>
+            <li><strong>自定义无限扩展</strong>：你可以定义任何名称的等级（如 <code>diamond</code>, <code>special_gift</code>）。只需在 Supabase 的 <code>profiles</code> 表中将用户的 <code>tier</code> 设为该名称，并在 KV 的 <code>__sys__quotas</code> 中配置对应数字即可。如果某个等级未在 KV 中定义数字，系统会自动回退到 <code>free</code> 等级的额度。</li>
+            <li><strong>即时同步</strong>：修改 KV 后，管理员需向后端发送 <code>POST /api/config/refresh-quotas</code> 请求（需携带 Admin Key），强制 VPS 更新内存缓存。</li>
         </ul>
+
+        <h2>2. 短域名稀缺性与“占位控”</h2>
 
         <h2>2. 防作弊与裂变风控 (Anti-Cheat)</h2>
         <p>针对“刷邀请码”获取奖励的行为，我们建立了多层防御：</p>

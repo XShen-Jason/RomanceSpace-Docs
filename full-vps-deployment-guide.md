@@ -145,8 +145,8 @@ server {
     }
     
     # 模板静态资产（CSS/JS/图片）由后端从 R2 读取并服务
-    # 必须放在 ~*.css 等正则规则之前，否则 Nginx 会拦截这些请求
-    location /assets/ {
+    # 关键：必须使用 ^~ 修饰符，防止请求被下方的 ~* 正则块截获
+    location ^~ /assets/ {
         proxy_pass         http://127.0.0.1:3000;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;

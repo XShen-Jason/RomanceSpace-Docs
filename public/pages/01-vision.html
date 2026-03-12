@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 1: 项目愿景与 SaaS 蓝图 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 1</div>
+        <h1>项目愿景与 SaaS 商业化蓝图</h1>
+        
+        <p>RomanceSpace 不仅仅是一个简单的网页生成工具，它是一个致力于捕捉、保存并全球化传播浪漫瞬间的 <strong>SaaS (Software as a Service)</strong> 平台。本章将揭示我们的核心愿景、商业化逻辑以及为何我们能以极低成本支撑海量用户。</p>
+
+        <h2>1. 核心定位：从工具到平台</h2>
+        <p>我们的初衷是让每一个非技术用户，都能在几秒钟内为心爱的人交付一个极致精美的网页。为了实现这一目标，我们构建了一套基于边缘计算的高性能分发体系。</p>
+        
+        <div class="note">
+            <strong>💡 我们的核心口号：</strong><br>
+            Edge First + Static Generation + Browser Builder<br>
+            <em>“用户访问不碰服务器，创作过程不花流量费，静态存储不仅省钱，而且永不宕机。”</em>
+        </div>
+
+        <h2>2. SaaS 商业化策略</h2>
+        <p>作为一套成熟的 SaaS，我们围绕“修改特权”和“稀缺资源”构建盈利点，而非传统的“访问流量”。</p>
+        
+        <h3>流量免费，修改收费</h3>
+        <p>得益于 CQRS 架构，用户的网页一旦生成，其访问成本几乎为零。因此我们鼓励用户无限分享，利用“引流效应”扩大品牌影响力。我们限制的是：</p>
+        <ul>
+            <li><strong>写操作频率</strong>：每日内容更新次数。</li>
+            <li><strong>模板特权</strong>：解锁 3D、视差效果等高级视觉模板。</li>
+            <li><strong>资源独占</strong>：极品短域名（如 <code>love.885201314.xyz</code>）的数量。</li>
+        </ul>
+
+        <h3>用户漏斗：匿名体验首位</h3>
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+                <strong>完全开放的画廊</strong>
+                用户无需注册即可查看所有精美模板，降低心理负担。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+                <strong>零门槛实时预览</strong>
+                基于 BSR 架构，用户在编辑器内填词、放图时，所有计算在本地完成。此时我们的服务器甚至不需要知道这位用户的存在。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+                <strong>发布锁定</strong>
+                只有当用户完成创作，想要获取专属网址时，才引导注册/登录，实现极高的转化率。
+            </div>
+        </div>
+
+        <h2>3. 成本考量与安全</h2>
+        <p>在初期阶段，我们坚持 **“零门槛、零成本”** 的策略：</p>
+        <ul>
+            <li><strong>邮箱注册</strong>：使用 Supabase Auth，免费支持 5 万活跃用户。</li>
+            <li><strong>防作弊体系</strong>：通过 IP 限流和奖励延迟发放（只有真实发布非空网页才奖励邀请者）来对抗羊毛党。</li>
+            <li><strong>域名回收</strong>：对于连续 180 天零访问的“死网站”，系统会自动回收域名资源，保持公共资源池的活力。</li>
+        </ul>
+
+        <div class="chapter-nav">
+            <div class="nav-link">
+                <!-- No previous for chapter 1 -->
+            </div>
+            <a href="02-architecture.html" class="nav-link next">
+                <span class="nav-label">下一章</span>
+                <span class="nav-title">Ch 2: 宏观架构 (上帝视角)</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

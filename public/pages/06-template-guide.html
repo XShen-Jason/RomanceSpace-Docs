@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 6: 模板共创规范 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 6</div>
+        <h1>模板大师：共创规范与 AI 生产线</h1>
+        
+        <p>RomanceSpace 的生命力源于丰富多彩的模板。我们制定了极致简单的 **2.0 标准**，让不懂代码的创作者也能通过 AI 快速生成高品质模板。</p>
+
+        <h2>1. 模板目录结构</h2>
+        <p>一个标准的模板包由三个核心文件组成：</p>
+        <pre><code>my-new-template/
+├── index.html   (HTML 骨架，带注入语法)
+├── config.json  (定义用户需要填写的表单字段)
+└── thumb.jpg    (画廊预览图，建议 600x400)</code></pre>
+
+        <h2>2. 注入语法规范</h2>
+        <p>我们使用双大括号 <code>{{ variable_id }}</code> 作为占位符。后端会在渲染时执行全局替换。</p>
+        <ul>
+            <li><strong>动态文字</strong>：<code>&lt;h1&gt;{{ title }}&lt;/h1&gt;</code></li>
+            <li><strong>图片 URL</strong>：<code>&lt;img src="{{ bg_image }}"&gt;</code></li>
+            <li><strong>条件样式</strong>：<code>&lt;div style="color: {{ font_color }}"&gt;</code></li>
+        </ul>
+
+        <h2>3. config.json 详解</h2>
+        <p>这是生成器表单的“大脑”，定义了用户在后台能改哪些东西：</p>
+        <pre><code>{
+  "name": "极简唯美周年庆",
+  "fields": [
+    {
+      "id": "title",
+      "label": "大标题",
+      "type": "text",
+      "default": "致最亲爱的你"
+    },
+    {
+      "id": "content",
+      "label": "情话内容",
+      "type": "textarea",
+      "default": "这里填入你的满腔爱意..."
+    }
+  ]
+}</code></pre>
+
+        <h2>4. AI 极速生产线</h2>
+        <p>配合下方的指令，你可以让 ChatGPT 等 AI 瞬间产出完美的代码：</p>
+
+        <div class="warning">
+            <strong>点击下方卡片即可复制指令：</strong>
+        </div>
+
+        <div style="background: #fdf2f7; border: 2px dashed #d6336c; padding: 25px; border-radius: 12px; cursor: pointer;" onclick="copyPrompt()">
+            <p id="prompt-content" style="font-family: monospace; font-size: 13px; color: #d6336c; white-space: pre-wrap;">请为“浪漫空间” (RomanceSpace) 生成一套网页模板代码：
+1. index.html：必须 Mobile-First 响应式。使用 {{ variable_id }} 注入。
+2. config.json：字段定义遵循 {"id": "...", "label": "...", "type": "text|textarea"}。
+3. 设计风格：Glassmorphism (毛玻璃) 或极致极简。
+严禁使用外部 JS 框架，允许使用原生 CSS 动画。</p>
+            <div style="text-align: right; font-size: 11px; font-weight: bold; color: #d6336c;">(点击卡片一键复制)</div>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="05-deployment.html" class="nav-link">
+                <span class="nav-label">上一章</span>
+                <span class="nav-title">Ch 5: 部署圣经</span>
+            </a>
+            <a href="07-api-reference.html" class="nav-link next">
+                <span class="nav-label">下一章</span>
+                <span class="nav-title">Ch 7: API 汇总字典</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function copyPrompt() {
+            const txt = document.getElementById('prompt-content').innerText;
+            navigator.clipboard.writeText(txt).then(() => {
+                alert('✨ 指令已复制到剪贴板，快去发给 AI 吧！');
+            });
+        }
+    </script>
+</body>
+</html>

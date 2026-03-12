@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 4: 仓库生态与高效协作 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 4</div>
+        <h1>仓库生态：团队开发与协作流转</h1>
+        
+        <p>RomanceSpace 的代码高度模块化，分布在 6 个核心仓库中。为了确保开发效率与系统安全，我们需要遵循统一的协作流程。</p>
+
+        <h2>1. 仓库图谱与角色</h2>
+        <p>协作首要原则是：<strong>职责清晰，环境隔离</strong>。</p>
+
+        <table>
+            <tr>
+                <th>仓库名称</th>
+                <th>核心职能</th>
+                <th>开发者关注点</th>
+            </tr>
+            <tr>
+                <td><strong>RS-Frontend</strong></td>
+                <td>React 应用，UI 交互。</td>
+                <td>Vite 构建、移动端适配、AJAX 接口调用。</td>
+            </tr>
+            <tr>
+                <td><strong>RS-Backend</strong></td>
+                <td>Node.js API，写操作中心。</td>
+                <td>R2/KV 操作逻辑、数据库 Schema、高并发限流。</td>
+            </tr>
+            <tr>
+                <td><strong>RS-Worker</strong></td>
+                <td>边缘路由，只读分发。</td>
+                <td>Wrangler 部署、子域名正则校验、缓存策略。</td>
+            </tr>
+            <tr>
+                <td><strong>RS-Templates</strong></td>
+                <td>纯净 HTML/CSS 蓝图。</td>
+                <td>设计审美、注入占位符 {{ id }} 的规范性。</td>
+            </tr>
+            <tr>
+                <td><strong>RS-Docs</strong></td>
+                <td>开发者手册。</td>
+                <td>本文档的维护，HTML 静态页面更新。</td>
+            </tr>
+        </table>
+
+        <h2>2. 自动化部署 (CI/CD) 流程</h2>
+        <p>所有的部署都应通过 GitHub Actions 自动化进行，严禁私自绕过流水线。</p>
+        
+        <h3>典型发布路径：</h3>
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+                <strong>提交代码 (Push)</strong>：开发者向 Master 分支提交代码。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+                <strong>触发 CI (Build)</strong>：GitHub Actions 启动。前端执行 <code>npm build</code>，后端检查 Linter。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+                <strong>自动分发 (Deploy)</strong>：
+                <ul>
+                    <li>Frontend 自动推至 Cloudflare Pages。</li>
+                    <li>Worker 自动推至 Cloudflare Edge。</li>
+                    <li>Templates 自动推至 R2 云目录。</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>3. 本地开发环境建议</h2>
+        <p>为了模拟真实的“上帝视角”，本地开发建议：</p>
+        <ul>
+            <li><strong>后端</strong>：本地运行 <code>npm run dev</code> (3000端口)，配置 <code>.env</code> 指向 Supabase 的本地或开发库。</li>
+            <li><strong>前端</strong>：使用 Vite 的 <code>proxy</code> 功能，将 <code>/api</code> 代理到 3000 端口，解决跨域问题。</li>
+            <li><strong>Worker</strong>：使用 <code>npx wrangler dev</code> 进行本地边缘环境测试。</li>
+        </ul>
+
+        <div class="chapter-nav">
+            <a href="03-data-flow.html" class="nav-link">
+                <span class="nav-label">上一章</span>
+                <span class="nav-title">Ch 3: 数据脉动</span>
+            </a>
+            <a href="05-deployment.html" class="nav-link next">
+                <span class="nav-label">下一章</span>
+                <span class="nav-title">Ch 5: 部署圣经 (Production Ready)</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

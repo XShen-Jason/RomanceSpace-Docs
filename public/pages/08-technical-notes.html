@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 8: 技术优势与性能保障 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 8</div>
+        <h1>技术优势：为何我们是行业顶尖？</h1>
+        
+        <p>RomanceSpace 的稳定性与低成本并非偶然，而是基于一系列深度优化措施。本章总结了平台的四大核心技术优势。</p>
+
+        <h2>优势 1：极致的边缘分发 (Edge Priority)</h2>
+        <div class="flow-step">
+            <div class="flow-num">🚀</div>
+            <div class="flow-content">
+                <strong>流量与抗压</strong>：通过 Cloudflare Worker 拦截所有 C 端流量，VPS 只处理少量的 B 端写请求。这使得哪怕有千万级并发流量，VPS 依然可以“岁月静好”。
+            </div>
+        </div>
+
+        <h2>优势 2：变态级的省钱法 (Zero Cost Strategy)</h2>
+        <p>我们巧妙利用了云厂商的免费额度上限：</p>
+        <ul>
+            <li><strong>R2 存储</strong>：免费 10GB 空间，100w 次/月写入。</li>
+            <li><strong>KV 路由</strong>：充分利用 10w 次/天的免费读取额度，将高价值的域名解析放在边缘。</li>
+            <li><strong>BSR 预览</strong>：由于预览阶段 0 服务器参与，我们节省了 90% 以上的中间计算费。</li>
+        </ul>
+
+        <h2>优势 3：高透明度的实时预览</h2>
+        <div class="flow-step">
+            <div class="flow-num">✨</div>
+            <div class="flow-content">
+                <strong>BSR 毫秒级防爆</strong>：用户打字即反馈。通过 <code>iframe</code> + <code>srcDoc</code> + <code>&lt;base&gt;</code> 注入，解决了所有相对路径丢失问题，提供了行业顶尖的“所见即所得”体验。
+            </div>
+        </div>
+
+        <h2>优势 4：健壮的安全防护</h2>
+        <ul>
+            <li><strong>内存级黑名单</strong>：VPS 在启动时仅加载一次 KV 黑名单，后续检测 0 网络开销、0 响应延迟。</li>
+            <li><strong>跨域绝杀</strong>：通过 Nginx 网关中转，前端与后端在物理域名上合一，彻底规避了 CORS 的复杂配置与安全隐患。</li>
+            <li><strong>Worker 边缘防御</strong>：正则阻断、参数守卫、全局 try-catch，四道防线确保系统永不“裸奔”。</li>
+        </ul>
+
+        <div class="note">
+            <strong>💎 结语：</strong><br>
+            RomanceSpace 是一场关于“优雅部署”的实验。只要遵循“一地写，一地读”的原则，这个架构可以轻松横向拓展，经受住任何流量海啸的考验。
+        </div>
+
+        <p style="text-align: center; color: var(--gray); font-size: 0.85rem; margin-top: 50px;">
+            © 2026 RomanceSpace Engineering Team. Keep Coding, Stay Romantic.
+        </p>
+
+        <div class="chapter-nav">
+            <a href="07-api-reference.html" class="nav-link">
+                <span class="nav-label">上一章</span>
+                <span class="nav-title">Ch 7: API 汇总字典</span>
+            </a>
+            <div class="nav-link">
+                <!-- End of Book -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>

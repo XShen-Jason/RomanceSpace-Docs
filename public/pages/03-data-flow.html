@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 3: 数据脉动与交互流转 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 3</div>
+        <h1>数据脉动：端到端的全周期流转</h1>
+        
+        <p>在上帝视角下，数据并非静止。让我们通过“小明”创建一个浪漫网页的具体场景，来拆解数据是如何在各个服务间穿梭的。</p>
+
+        <h2>1. 场景：小明建站的全套流程</h2>
+        
+        <h3>阶段 A：前端造壳 (Collection Phase)</h3>
+        <p>他在 <code>www.885201314.xyz/builder</code> 选好模板，填入情话。此时数据存在于小明的浏览器内存中。</p>
+        <div class="note">
+            <strong>💡 例子 (Payload)：</strong><br>
+            <code>POST /api/project/render</code><br>
+            数据包：<code>{ subdomain: "wedding", title: "致小红", content: "永远爱你" }</code>
+        </div>
+
+        <h3>阶段 B：后端重铸 (Render & Write Phase)</h3>
+        <p>数据通过后端 API 到达 VPS。在这里，Node.js 开始执行“强权操作”：</p>
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+                <strong>注入渲染 (Hydration)</strong>：后端从 R2 抓取原始模板 <code>template/wedding/index.html</code>，将小明的话填入 `{{ title }}`。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+                <strong>落户 R2 (Storage)</strong>：生成成品 HTML，并存入私有云仓 <code>pages/wedding/index.html</code>。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+                <strong>登记 KV (Routing)</strong>：在全局路由地址簿中写下：<code>wedding => { status: active }</code>。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div class="flow-content">
+                <strong>入账 DB (Record)</strong>：最后在 Supabase 登记下小明的所有权。
+            </div>
+        </div>
+
+        <h3>阶段 C：全球分发 (Delivery Phase)</h3>
+        <p>当小红点开 <code>wedding.885201314.xyz</code> 时：</p>
+        <ol>
+            <li><strong>Worker 拦截请求</strong>，发现主机名中包含 <code>wedding</code>。</li>
+            <li><strong>查询 KV</strong>，确认这个域名在库中且是激活状态。</li>
+            <li><strong>调取 R2</strong>，直接流式读取 <code>pages/wedding/index.html</code> 内容。</li>
+            <li><strong>返回用户</strong>，并贴上 <code>Cache-Control</code> 让 CDN 节点记住它。</li>
+        </ol>
+
+        <h2>2. 数据的“写时强覆盖”哲学</h2>
+        <p>为了极致简化逻辑并节省费用，我们采取了 **“0 垃圾覆盖法则”**：</p>
+        <ul>
+            <li><strong>不产生新文件名</strong>：用户修改内容时，后端永远是针对同一个路径 <code>pages/{id}/index.html</code> 进行强制覆盖。</li>
+            <li><strong>缓存刷新</strong>：覆盖写入后，后端会通过 Cloudflare OpenAPI 对该 URL 执行 Purge 操作，秒级清除旧缓存。</li>
+        </ul>
+
+        <div class="danger">
+            <strong>⚠️ 重要提醒：</strong><br>
+            KV 的每天免费写入额度仅 1000 次。这是我们唯一的短板。我们严禁在 KV 中存储长篇用户文字，KV 只存路由状态！真正的长文本永远存储在无上限的 R2 静态文件中。
+        </div>
+
+        <div class="chapter-nav">
+            <a href="02-architecture.html" class="nav-link">
+                <span class="nav-label">上一章</span>
+                <span class="nav-title">Ch 2: 宏观架构</span>
+            </a>
+            <a href="04-collaboration.html" class="nav-link next">
+                <span class="nav-label">下一章</span>
+                <span class="nav-title">Ch 4: 团队开发与仓库协作</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

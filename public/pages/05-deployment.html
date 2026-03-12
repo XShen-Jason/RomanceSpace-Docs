@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 5: 部署与运维圣经 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 5</div>
+        <h1>部署圣经：从服务器到边缘</h1>
+        
+        <p>本章记录了如何从零开始部署 RomanceSpace 的全栈环境，涵盖 VPS、Nginx、Cloudflare 等各个关键环节。</p>
+
+        <h2>1. 中央 API 后端 (VPS 部署)</h2>
+        <p>后端运行在专有的 Linux VPS 上，通过 PM2 进行守护，并由 Nginx 暴露 API 统一出口。</p>
+        
+        <h3>Nginx 关键配置 (动静分离与代理)</h3>
+        <pre><code>server {
+    listen 80;
+    server_name www.885201314.xyz api.885201314.xyz;
+
+    # 1. 动静分离：前端 React 打包文件
+    location / {
+        root /var/www/romancespace-frontend/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 2. 修改 API 接口中转
+    location /api/ {
+        proxy_pass http://localhost:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        # 绝杀跨域：内网中转，外部看起来是同一个域名
+    }
+}</code></pre>
+
+        <h3>PM2 进程守卫</h3>
+        <pre><code># 在服务器项目目录下执行
+npm install
+pm2 start src/server.js --name "rs-api"
+pm2 save
+pm2 startup</code></pre>
+
+        <h2>2. 边缘路由 (Worker) 部署</h2>
+        <p>Worker 部署在 Cloudflare，其核心在于正确绑定环境变量与命名空间。</p>
+        
+        <h3>部署命令</h3>
+        <pre><code>cd RomanceSpace-Worker
+npx wrangler deploy</code></pre>
+
+        <h3>权限绑定清单：</h3>
+        <ul>
+            <li><strong>KV Namespace</strong>: 绑定 <code>ROMANCESPACE_KV</code>，用于存储路由信息。</li>
+            <li><strong>R2 Bucket Binding</strong>: 绑定 <code>ROMANCESPACE_R2</code>，用于读取静态 HTML。</li>
+            <li><strong>Custom Domains</strong>: 将 <code>*.885201314.xyz</code> 绑定到该 Worker 上。</li>
+        </ul>
+
+        <h2>3. 日常维护与“防爆”指南</h2>
+        <p>为了防止 2h2g VPS 被日志或垃圾文件填满，请务必执行以下运维操作：</p>
+        
+        <div class="flow-step">
+            <div class="flow-num">!</div>
+            <div class="flow-content">
+                <strong>Logrotate 内存卫士</strong>：配置日志自动切割，防止 <code>pm2</code> 日志文件爆涨。
+            </div>
+        </div>
+
+        <div class="chapter-nav">
+            <a href="04-collaboration.html" class="nav-link">
+                <span class="nav-label">上一章</span>
+                <span class="nav-title">Ch 4: 仓库生态</span>
+            </a>
+            <a href="06-template-guide.html" class="nav-link next">
+                <span class="nav-label">下一章</span>
+                <span class="nav-title">Ch 6: 模板大师 (共创规范)</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

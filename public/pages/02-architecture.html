@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 2: 宏观架构与仓库协作 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 2</div>
+        <h1>宏观架构：上帝视角下的协调</h1>
+        
+        <p>RomanceSpace 并非一个臃肿的单体应用。我们通过 <strong>CQRS (Command Query Responsibility Segregation)</strong> 读写分离架构，将系统拆分为多个协作单元。</p>
+
+        <h2>1. 核心架构：读写垂直切分</h2>
+        <p>我们遵循的一条铁律是：<strong>“让 VPS 后端承担写操作（渲染、校验），让 Cloudflare 边缘承担读操作（访问分发）。”</strong></p>
+
+        <table>
+            <tr>
+                <th>操作类型</th>
+                <th>承载主力</th>
+                <th>技术栈</th>
+                <th>优势</th>
+            </tr>
+            <tr>
+                <td><strong>写 (Commands)</strong></td>
+                <td>中央 VPS (云服务器)</td>
+                <td>Node.js / Nginx</td>
+                <td>逻辑可控、高性能渲染、安全。</td>
+            </tr>
+            <tr>
+                <td><strong>读 (Queries)</strong></td>
+                <td>Cloudflare Worker / CDN</td>
+                <td>V8 Isolates / Edge</td>
+                <td>全球 0 延迟、无需冷启动、极高并发。</td>
+            </tr>
+        </table>
+
+        <h2>2. 六大仓库协作体系</h2>
+        <p>项目被拆分为物理隔离的六个仓库，每个仓库各司其职：</p>
+
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+                <strong>Frontend (平台前台)</strong>
+                React 驱动的 SPA 应用（Cloudflare Pages 部署）。负责用户操作面板、Builder 编辑器和账户管理。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+                <strong>Backend (写操作引擎)</strong>
+                运行在 VPS 上的 Node.js 服务。持有 DB、R2、KV 的最高写入特权。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+                <strong>Worker (分发网关)</strong>
+                拦截 <code>*.885201314.xyz</code> 域名的边缘微服务。像个“小保安”一样，只负责查 KV 路由并从 R2 取货返给访客。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div class="flow-content">
+                <strong>Templates (资产库)</strong>
+                独立的 HTML/CSS 模板仓库。由 CI/CD 自动同步至 R2 的 <code>/templates</code> 目录。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">5</div>
+            <div class="flow-content">
+                <strong>Database & Auth (账房)</strong>
+                利用 Supabase (Postgres) 进行权限鉴定和原始配置数据的长久化存储。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">6</div>
+            <div class="flow-content">
+                <strong>Docs (知识库)</strong>
+                就是你现在看到的这套手册，负责记录项目的所有技术细节。
+            </div>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 安全红线：</strong><br>
+            Frontend 和 Worker 严禁直接连接 Supabase 数据库！所有敏感数据的读取与修改必须通过 Backend VPS 代理进行，以防泄露机密密钥。
+        </div>
+
+        <div class="chapter-nav">
+            <a href="01-vision.html" class="nav-link">
+                <span class="nav-label">上一章</span>
+                <span class="nav-title">Ch 1: 项目愿景</span>
+            </a>
+            <a href="03-data-flow.html" class="nav-link next">
+                <span class="nav-label">下一章</span>
+                <span class="nav-title">Ch 3: 数据脉动 (流转生命周期)</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

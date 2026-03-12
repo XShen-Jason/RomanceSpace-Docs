@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RomanceSpace - 全球开发者 & 运维大师指南</title>
+    <style>
+        :root {
+            --primary: #d6336c;
+            --primary-light: #fdf2f8;
+            --secondary: #1e3a8a;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --bg: #f8fafc;
+            --white: #ffffff;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        /* ── Header ────────────────────────────────────────────────────────── */
+        header {
+            background: linear-gradient(135deg, var(--secondary) 0%, #1e40af 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+        }
+
+        header p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* ── Layout ────────────────────────────────────────────────────────── */
+        .container {
+            max-width: 1100px;
+            margin: -40px auto 100px;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 40px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+                margin-top: 20px;
+            }
+        }
+
+        /* ── Sidebar ──────────────────────────────────────────────────────── */
+        aside {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+
+        .sidebar-nav {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 12px;
+        }
+
+        .sidebar-nav a {
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+            display: block;
+            padding: 6px 0;
+        }
+
+        .sidebar-nav a:hover {
+            color: var(--primary);
+        }
+
+        .sidebar-nav .active {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* ── Content ───────────────────────────────────────────────────────── */
+        main {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 60px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        @media (max-width: 600px) {
+            main {
+                padding: 30px 20px;
+            }
+        }
+
+        section {
+            margin-bottom: 80px;
+            scroll-margin-top: 40px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: var(--secondary);
+            margin-bottom: 24px;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            color: var(--dark);
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: #475569;
+        }
+
+        /* ── Components ────────────────────────────────────────────────────── */
+        .badge {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 16px 20px;
+            margin: 24px 0;
+            border-radius: 4px;
+            color: #166534;
+            font-size: 0.95rem;
+        }
+
+        .warning {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 16px 20px;
+            margin: 24px 0;
+            color: #92400e;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            overflow: auto;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin: 30px 0;
+            text-align: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .flow-node {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border: 1px solid #e2e8f0;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .flow-node strong {
+            display: block;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .flow-arrow {
+            color: var(--gray);
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: var(--secondary);
+            font-weight: 700;
+        }
+
+        .copy-card {
+            background: #fdf2f7;
+            border: 2px dashed var(--primary);
+            padding: 30px;
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .copy-card:hover {
+            transform: scale(1.01);
+        }
+
+        .copy-label {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>RomanceSpace Master Guide</h1>
+        <p>探索 SaaS 级浪漫网页生成平台的底层逻辑、全球架构与协作标准。</p>
+    </header>
+
+    <div class="container">
+        <aside>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#vision">🌌 项目愿景</a></li>
+                    <li><a href="#architecture">🏗️ 宏观架构 (上帝视角)</a></li>
+                    <li><a href="#data-journey">📊 数据生命周期</a></li>
+                    <li><a href="#eco-system">🌱 仓库生态与协作</a></li>
+                    <li><a href="#deployment">🚢 部署与运维圣经</a></li>
+                    <li><a href="#templates">🎨 模板共创规范</a></li>
+                    <li><a href="#api">📡 API 词典汇总</a></li>
+                    <li><a href="#quality">💎 优势与性能措施</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main>
+            <!-- 🌌 项目愿景 -->
+            <section id="vision">
+                <h2>🌌 项目愿景</h2>
+                <p>RomanceSpace 不仅仅是一个网页生成器。它是一个高性能、低成本、全球加速的 <strong>SaaS (Software as a Service)</strong> 平台。我们的目标是让每一个人都能在几秒钟内，为心爱的人交付一个极致精美的浪漫空间，并提供永久、稳定的全球访问保障。</p>
+                <div class="note">
+                    <strong>💡 核心策略：</strong> 极致利用边缘计算 (Edge Computing) 降低 99% 的静态分发成本，同时保持后端逻辑的高度私密与安全。
+                </div>
+            </section>
+
+            <!-- 🏗️ 宏观架构 -->
+            <section id="architecture">
+                <h2>🏗️ 宏观架构 (上帝视角)</h2>
+                <p>整个系统采用了 <strong>CQRS (读写分离)</strong> 架构。我们将重体力的“写”操作（生成网页、计费、管理）与超大规模的“读”操作（全球访客查看页面）物理隔离。</p>
+                
+                <div class="flow-diagram">
+                    <div class="flow-node">
+                        <strong>Frontend</strong>
+                        Pages / Vite
+                    </div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-node">
+                        <strong>Backend</strong>
+                        VPS / Node.js
+                    </div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-node">
+                        <strong>Storage</strong>
+                        Cloudflare R2 / KV
+                    </div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-node">
+                        <strong>Edge</strong>
+                        CF Worker
+                    </div>
+                </div>
+
+                <h3>核心组件说明：</h3>
+                <table>
+                    <tr>
+                        <th>组件</th>
+                        <th>技术路径</th>
+                        <th>角色职责</th>
+                    </tr>
+                    <tr>
+                        <td><strong>控制台 (GUI)</strong></td>
+                        <td>Cloudflare Pages</td>
+                        <td>用户交互、表单收集、Supabase 鉴权。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>中央工厂 (API)</strong></td>
+                        <td>VPS (Ubuntu + Nginx)</td>
+                        <td>渲染 HTML 模板、操作 R2 与 KV、数据库同步。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>数据中心 (DB)</strong></td>
+                        <td>Supabase (PostgreSQL)</td>
+                        <td>存储用户账户、订单、模板元数据。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>全球分发 (Gate)</strong></td>
+                        <td>Cloudflare Worker</td>
+                        <td>拦截子域名请求，执行变量注入，毫秒级响应。</td>
+                    </tr>
+                </table>
+            </section>
+
+            <!-- 📊 数据生命周期 -->
+            <section id="data-journey">
+                <h2>📊 数据生命周期 (Data Journey)</h2>
+                <p>让我们以用户“小明”创建 <code>love.885201314.xyz</code> 为例，观察数据流转：</p>
+
+                <div class="flow-step">
+                    <p><strong>Step 1. 前端捕获</strong>：小明在 Builder 页面输入“致小红”，选择模板。前端生成 JSON 负载并发往 VPS API。</p>
+                </div>
+                <div class="flow-step">
+                    <p><strong>Step 2. 灌装成型</strong>：后端接收请求，从 R2 拉取对应模板的 HTML 骨架，通过正则引擎将文本注入 `{{ message }}` 等占位符中。</p>
+                </div>
+                <div class="flow-step">
+                    <p><strong>Step 3. 极速登记</strong>：后端将渲染好的 HTML 打包进 R2 的 <code>/pages/love/index.html</code>，并在 KV 中登记 `{"love": {"status": "active"}}`。</p>
+                </div>
+                <div class="flow-step">
+                    <p><strong>Step 4. 边缘唤醒</strong>：访客访问该链接。边缘 Worker 获取 KV 记录，直接从 R2 流式调取 HTML 返回。**整个流量完全不经过 VPS。**</p>
+                </div>
+            </section>
+
+            <!-- 🌱 仓库生态 -->
+            <section id="eco-system">
+                <h2>🌱 仓库生态与协作</h2>
+                <p>项目被拆分为 5 个核心仓库，通过 GitHub 高效协作：</p>
+                <ul>
+                    <li><strong>RomanceSpace-Frontend</strong>: React 应用，负责 Builder 和用户中心。</li>
+                    <li><strong>RomanceSpace-Backend</strong>: Express 应用，负责核心逻辑与文件操作。</li>
+                    <li><strong>RomanceSpace-Worker</strong>: 负责子域名分发与路由的微码。</li>
+                    <li><strong>RomanceSpace-Templates</strong>: 纯净的 HTML/CSS 蓝图仓库。</li>
+                    <li><strong>RomanceSpace-Docs</strong>: 你现在看到的这套文档。</li>
+                </ul>
+                <div class="warning">
+                    <strong>协作原则：</strong> 任何改变生产环境的操作，应优先通过 GitHub Actions 流程自动部署，严谨手动介入。
+                </div>
+            </section>
+
+            <!-- 🚢 部署与运维 -->
+            <section id="deployment">
+                <h2>🚢 部署与运维圣经</h2>
+                
+                <h3>1. 前端 (Pages)</h3>
+                <p>Push 代码到 GitHub 后，Cloudflare Pages 会自动触发编译部署。环境变量 <code>VITE_API_BASE_URL</code> 需配置为生产环境后端地址。</p>
+
+                <h3>2. 后端 (VPS)</h3>
+                <pre><code># 标准部署流程 (Ubuntu)
+1. 安装 Nginx 和 Node.js
+2. 配置 PM2 进程管理: pm2 start src/server.js --name rs-api
+3. Nginx 转发配置:
+   location /api/ {
+       proxy_pass http://localhost:3000/;
+   }</code></pre>
+
+                <h3>3. 路由与分发 (Worker)</h3>
+                <p>使用 <code>npx wrangler deploy</code>。必须绑定 <code>ROMANCESPACE_KV</code> 命名空间以及对应的 R2 Bucket 权限。</p>
+            </section>
+
+            <!-- 🎨 模板规范 -->
+            <section id="templates">
+                <h2>🎨 模板共创规范 (2.0 Standard)</h2>
+                <p>RomanceSpace 欢迎所有人参与模板共创。我们拒绝繁琐的构建，提倡回归最纯粹的 HTML/CSS。</p>
+                
+                <h3>文件结构：</h3>
+                <pre><code>my_template/
+├── index.html   (核心骨架，带 {{ variable_id }})
+├── config.json  (字段定义说明书)
+└── style.css    (样式，建议内联)</code></pre>
+
+                <h3>AI 专用共创指令：</h3>
+                <div class="copy-card" onclick="copyText()">
+                    <div class="copy-label">点击复制提示词</div>
+                    <p id="prompt-txt" style="font-family: monospace; white-space: pre-wrap; font-size: 13px; color: var(--primary);">请为“浪漫空间” (RomanceSpace) 生成模板代码：
+1. index.html：响应式 + 注入语法 {{ var_id }}。
+2. config.json：{"name": "...", "fields": [{"id": "...", "label": "...", "type": "text|textarea"}]}。
+要求设计极其精美、浪漫，有 Premium 级别动画效果。</p>
+                </div>
+            </section>
+
+            <!-- 📡 API 词典 -->
+            <section id="api">
+                <h2>📡 API 词典汇总</h2>
+                <table>
+                    <tr>
+                        <th>接口路径</th>
+                        <th>方法</th>
+                        <th>功能说明</th>
+                    </tr>
+                    <tr>
+                        <td><code>/list</code></td>
+                        <td>GET</td>
+                        <td>获取所有可用模板列表</td>
+                    </tr>
+                    <tr>
+                        <td><code>/render</code></td>
+                        <td>POST</td>
+                        <td>渲染新项目并上传至存储库</td>
+                    </tr>
+                    <tr>
+                        <td><code>/upload</code></td>
+                        <td>POST</td>
+                        <td>(Admin) 上传原始模板素材</td>
+                    </tr>
+                </table>
+            </section>
+
+            <!-- 💎 优势与措施 -->
+            <section id="quality">
+                <h2>💎 优势与性能措施</h2>
+                <ul>
+                    <li><strong>成本极低</strong>：通过 R2 和 KV 的超额免费额度，支撑全站 90% 的请求。</li>
+                    <li><strong>零冷启动</strong>：Cloudflare Worker 无冷启动延迟，全球任一节点瞬间响应。</li>
+                    <li><strong>高容灾</strong>：即便 VPS 宕机，已生成的千万个小站依然可以在 CDN 边缘正常运行。</li>
+                    <li><strong>动静分离</strong>：API 请求同机中转，静态文件 Pages 分发，性能压榨到极致。</li>
+                </ul>
+                <p style="margin-top: 20px; text-align: center; color: var(--gray); font-size: 0.8rem;">
+                    © 2026 RomanceSpace Engineering Team. Stay Romantic.
+                </p>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function copyText() {
+            const text = document.getElementById('prompt-txt').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✨ 浪漫指令已复制到剪贴板！');
+            });
+        }
+    </script>
+</body>
+
+</html>

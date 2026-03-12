@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chapter 7: API 汇总字典 - RomanceSpace</title>
+    <link rel="stylesheet" href="handbook-style.css">
+</head>
+<body>
+    <div class="handbook-page">
+        <div class="badge">Chapter 7</div>
+        <h1>API 字典：核心功能汇总</h1>
+        
+        <p>本章为开发者提供了 <strong>RomanceSpace Backend</strong> 暴露的所有核心 API 接口说明。</p>
+
+        <h2>1. 模板管理 (Template APIs)</h2>
+        <table>
+            <tr>
+                <th>接口</th>
+                <th>方法</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td><code>/api/template/list</code></td>
+                <td>GET</td>
+                <td>获取全量可用模板列表。</td>
+            </tr>
+            <tr>
+                <td><code>/api/template/raw/:name</code></td>
+                <td>GET</td>
+                <td>获取指定模板的原始 HTML（BSR 使用）。</td>
+            </tr>
+            <tr>
+                <td><code>/api/template/upload</code></td>
+                <td>POST</td>
+                <td>(Admin) 上传新模板包。</td>
+            </tr>
+        </table>
+
+        <h2>2. 项目渲染与发布 (Project APIs)</h2>
+        <table>
+            <tr>
+                <th>接口</th>
+                <th>方法</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td><code>/api/project/render</code></td>
+                <td>POST</td>
+                <td>接收表单数据，渲染 HTML 并写入 R2/KV。</td>
+            </tr>
+            <tr>
+                <td><code>/api/project/check-subdomain</code></td>
+                <td>GET</td>
+                <td>检查子域名是否已被占用。</td>
+            </tr>
+            <tr>
+                <td><code>/api/project/my-listing</code></td>
+                <td>GET</td>
+                <td>(Auth) 列出当前用户拥有的页面。</td>
+            </tr>
+        </table>
+
+        <h2>3. 系统运维 (System Ops)</h2>
+        <table>
+            <tr>
+                <th>接口</th>
+                <th>方法</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td><code>/api/project/config/refresh-blocklist</code></td>
+                <td>POST</td>
+                <td>(Admin) 强制通知 VPS 刷新内存中的域名黑名单。</td>
+            </tr>
+            <tr>
+                <td><code>/api/auth/status</code></td>
+                <td>GET</td>
+                <td>校验当前登录状态。</td>
+            </tr>
+        </table>
+
+        <div class="note">
+            <strong>💡 鉴权方式：</strong><br>
+            除了公开的渲染与查重接口，大部分涉及用户资产的 API 均通过 Supabase Session Token 进行鉴权。
+        </div>
+
+        <div class="chapter-nav">
+            <a href="06-template-guide.html" class="nav-link">
+                <span class="nav-label">上一章</span>
+                <span class="nav-title">Ch 6: 模板规范</span>
+            </a>
+            <a href="08-technical-notes.html" class="nav-link next">
+                <span class="nav-label">下一章</span>
+                <span class="nav-title">Ch 8: 技术优势与性能保障</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

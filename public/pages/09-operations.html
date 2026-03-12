@@ -18,10 +18,10 @@
         <ul>
             <li><strong>管理方式</strong>：在 Cloudflare KV 中的 <code>ROMANCESPACE_KV</code> 命名空间内，创建一个 Key 为 <code>__sys__quotas</code> 的 JSON 对象。</li>
             <li><strong>配置示例</strong>：<br>
-                <code>{ "free": 1, "pro": 10, "super_vip": 50, "partner": 100 }</code>
+                <code>{ "pro": { "limit": 10, "label": "💎 高级会员" }, "partner": { "limit": 100, "label": "👑 战略合伙人" } }</code>
             </li>
-            <li><strong>自定义无限扩展</strong>：你可以定义任何名称的等级（如 <code>diamond</code>, <code>special_gift</code>）。只需在 Supabase 的 <code>profiles</code> 表中将用户的 <code>tier</code> 设为该名称，并在 KV 的 <code>__sys__quotas</code> 中配置对应数字即可。如果某个等级未在 KV 中定义数字，系统会自动回退到 <code>free</code> 等级的额度。</li>
-            <li><strong>即时同步</strong>：修改 KV 后，管理员需向后端发送 <code>POST /api/config/refresh-quotas</code> 请求（需携带 Admin Key），强制 VPS 更新内存缓存。</li>
+            <li><strong>自定义无限扩展</strong>：你可以定义任何名称的等级。只需在 Supabase 中设置用户的 <code>tier</code>，并在 KV 中配置对应的 <code>limit</code> (额度数字) 和 <code>label</code> (显示的中文名) 即可。</li>
+            <li><strong>即时同步</strong>：修改 KV 后，管理员需向后端发送 <code>POST /api/project/config/refresh-quotas</code> 请求（需携带 Admin Key），强制 VPS 更新内存缓存。</li>
         </ul>
 
         <h2>2. 短域名稀缺性与“占位控”</h2>

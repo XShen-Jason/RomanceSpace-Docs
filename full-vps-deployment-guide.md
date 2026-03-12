@@ -144,7 +144,17 @@ server {
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
     
-    # 静态资源长期硬缓存
+    # 模板静态资产（CSS/JS/图片）由后端从 R2 读取并服务
+    # 必须放在 ~*.css 等正则规则之前，否则 Nginx 会拦截这些请求
+    location /assets/ {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+    
+    # 静态资源长期硬缓存（前端 React bundle JS/CSS）
     location ~* \.(js|css|png|jpg|svg|woff2)$ {
         root /opt/RomanceSpace-Frontend/dist;
         expires 30d;

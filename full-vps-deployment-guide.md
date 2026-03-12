@@ -153,6 +153,15 @@ server {
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
+
+    # [优化] Gallery 模板列表静态化：由后端生成，Nginx 直接提供，加载速度提升 10 倍
+    location = /templates.json {
+        alias /opt/cache/templates.json;
+        add_header Content-Type application/json;
+        add_header Access-Control-Allow-Origin *;
+        add_header Cache-Control "public, max-age=60";
+    }
+
     
     # 静态资源长期硬缓存（前端 React bundle JS/CSS）
     location ~* \.(js|css|png|jpg|svg|woff2)$ {

@@ -75,10 +75,10 @@ template_folder_name/
 如果你正在作为开发助理生成模板，请直接复制下方的指令：
 
 > **[复制指令]**
-> 请为“浪漫空间”平台生成一套完整的网页模板代码：
-> 1. 生成一个 `index.html`，必须是响应式设计（Mobile-First），使用 Flexbox 或 Grid 确保在手机端居中显示。
-> 2. 使用双大括号 `{{ variable_name }}` 注入动态内容。
-> 3. 配套生成一个 `config.json`，遵循 schema：`{"name": "...", "fields": [{"id": "...", "label": "...", "default": "...", "type": "text|textarea"}]}`。
+> 请为“浪漫空间” (RomanceSpace) 平台生成一套完整的网页模板代码：
+> 1. 生成一个 `index.html`，必须是响应式设计 (Mobile-First)，适配手机与电脑。
+> 2. 使用双大括号 `{{ variable_id }}` 注入动态内容。
+> 3. 配套生成一个 `config.json`，遵循 schema：`{"name": "模板ID", "fields": [{"id": "...", "label": "...", "default": "...", "type": "text|textarea"}]}`。
 > 4. 设计风格：要求极度美满、浪漫、Premium感。使用毛玻璃特效（Glassmorphism）、平滑渐变和细腻的 CSS 动画。
 > 5. 兼容性：严禁使用外部 JS 框架，允许使用原生 JavaScript。
 

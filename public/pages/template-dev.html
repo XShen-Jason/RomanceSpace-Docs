@@ -100,7 +100,7 @@
 
     <h1>🧑‍💻 新模板开发与自动化部署指南 (笔记)</h1>
     <p>本指南面向想要为系统贡献新网页样式的切图仔。系统第五大独立仓库 <code>RomanceSpace-Templates</code> 没有任何复杂的构建工具，纯手工打造。它的灵魂在于一份名为
-        <code>schema.json</code> 的“使用说明书”。
+        <code>config.json</code> 的“使用说明书”。
     </p>
 
     <div class="note">
@@ -123,7 +123,7 @@
     <div class="file-tree">
         templates/my_card/<br>
         ├── index.html —— (必填) 你写的静态网页本体<br>
-        ├── schema.json —— (必填) 极其重要的替换词典<br>
+        ├── config.json —— (必填) 极其重要的替换词典<br>
         ├── style.css —— (可选) 让网民惊叫的 CSS 极品特效<br>
         └── img/bg.jpg —— (可选) 你引用的各种小素材
     </div>
@@ -141,15 +141,16 @@
     <div class="flow-step">
         <div class="flow-num">3</div>
         <div>
-            <strong>撰写 Schema.json 说明书</strong><br>
-            新建 <code>schema.json</code>，这个文件是给咱们的前端 React 和后端 VPS 读的。告诉它们这个模板需要收集什么词：
+            <strong>撰写 Config.json 说明书</strong><br>
+            新建 <code>config.json</code>，这个文件是给咱们的前端 React 和后端 VPS 读的。告诉它们这个模板需要收集什么词：
         </div>
     </div>
     <pre><code>{
+  "name": "my_card",
   "static": false,
   "fields": [
-    { "key": "title", "type": "string", "default": "我的标题" },
-    { "key": "author", "type": "string", "default": "神秘人" }
+    { "id": "title", "label": "标题", "type": "text", "default": "我的标题" },
+    { "id": "author", "label": "署名", "type": "text", "default": "神秘人" }
   ]
 }</code></pre>
 
@@ -168,7 +169,7 @@
         <div class="flow-num">2</div>
         <div>
             <strong>拖拽上传：</strong><br>
-            将你写好的 <code>index.html</code> 和 <code>schema.json</code> （以及配套图片）全部选中，拖进网页的上传框内。
+            将你写好的 <code>index.html</code> 和 <code>config.json</code> （以及配套图片）全部选中，拖进网页的上传框内。
         </div>
     </div>
     <div class="flow-step">
@@ -188,6 +189,39 @@ git add .
 git commit -m "feat: 新增了一个表白特效网页"
 git push</code></pre>
     <p>就是这么丝滑！根据您的团队人员构成，随意选择最合适的一套方案即可。</p>
+
+    <hr style="margin: 60px 0; border: none; border-top: 1px solid #eee;">
+
+    <h2>🚀 AI 生成模板指令 (Prompts)</h2>
+    <p>如果你想让 AI 帮你生成模板，请直接点击下方卡片复制提示词。这能确保 AI 生成的代码完全符合 RomanceSpace 的注入规范。</p>
+
+    <div id="ai-prompt-card" style="background: #fdf2f8; border: 2px dashed #f472b6; padding: 25px; border-radius: 12px; cursor: pointer; transition: all 0.2s; position: relative;" onclick="copyPrompt()">
+        <div style="position: absolute; top: 10px; right: 15px; color: #db2777; font-size: 12px; font-weight: bold;">点击卡片复制</div>
+        <p style="margin: 0; color: #9d174d; font-family: 'Courier New', Courier, monospace; font-size: 14px; white-space: pre-wrap;" id="prompt-text">请为“浪漫空间” (RomanceSpace) 平台生成一套完整的网页模板代码：
+1. 生成一个 `index.html`，要求：
+   - 必须是响应式设计 (Mobile-First)，布局兼容手机与电脑。
+   - 使用双大括号 `{{ variable_id }}` 标记需要动态注入的内容位置。
+   - 风格：视觉表现力极强，要求极致浪漫美观，设计精美。
+   - 严禁使用外部重型 JS 框架。
+2. 生成一个 `config.json`，遵循以下规范：
+   - `{"name": "模板ID", "fields": [{"id": "...", "label": "...", "default": "...", "type": "text|textarea"}]}`。
+3. 请提供完整的 HTML 以及 config.json 的内容。</p>
+    </div>
+
+    <script>
+        function copyPrompt() {
+            const text = document.getElementById('prompt-text').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const card = document.getElementById('ai-prompt-card');
+                const originalBg = card.style.background;
+                card.style.background = '#fbcfe8';
+                alert('提示词已复制到剪贴板！');
+                setTimeout(() => {
+                    card.style.background = originalBg;
+                }, 300);
+            });
+        }
+    </script>
 
 </body>
 

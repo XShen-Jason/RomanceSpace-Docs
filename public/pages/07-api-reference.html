@@ -11,57 +11,79 @@
         <div class="badge">Chapter 7</div>
         <h1>API 字典：核心功能汇总</h1>
         
-        <p>本章为开发者提供了 <strong>RomanceSpace Backend</strong> 暴露的所有核心 API 接口说明。</p>
+        <p>本章为开发者提供 <strong>RomanceSpace Backend</strong> 的全量接口参考。所有接口均挂载在 <code>www.885201314.xyz/api/</code> 之下。</p>
 
         <h2>1. 模板管理 (Template APIs)</h2>
+        <p>负责模板的生命周期管理，从上传到分发。</p>
         <table>
             <tr>
                 <th>接口</th>
                 <th>方法</th>
+                <th>鉴权</th>
                 <th>说明</th>
             </tr>
             <tr>
-                <td><code>/api/template/list</code></td>
+                <td><code>/template/list</code></td>
                 <td>GET</td>
-                <td>获取全量可用模板列表。</td>
+                <td>公开</td>
+                <td>获取全量可用模板列表，包含字段元数据。</td>
             </tr>
             <tr>
-                <td><code>/api/template/raw/:name</code></td>
+                <td><code>/template/raw/:name</code></td>
                 <td>GET</td>
-                <td>获取指定模板的原始 HTML（BSR 使用）。</td>
+                <td>公开</td>
+                <td>获取指定模板的原始 HTML（BSR 编辑器核心）。</td>
             </tr>
             <tr>
-                <td><code>/api/template/upload</code></td>
+                <td><code>/template/preview/:name</code></td>
+                <td>GET</td>
+                <td>公开</td>
+                <td>服务端渲染模板预览页。</td>
+            </tr>
+            <tr>
+                <td><code>/template/upload</code></td>
                 <td>POST</td>
-                <td>(Admin) 上传新模板包。</td>
+                <td>Admin</td>
+                <td>通过 Multipart 上传模板包（含 <code>config.json</code> 校验）。</td>
+            </tr>
+            <tr>
+                <td><code>/template/sync-local</code></td>
+                <td>POST</td>
+                <td>Admin</td>
+                <td>强制触发 VPS 与 GitHub/本地源码库的同步。</td>
             </tr>
         </table>
 
-        <h2>2. 项目渲染与发布 (Project APIs)</h2>
+        <h2>2. 项目渲染与路由 (Project APIs)</h2>
+        <p>系统的“心脏”，处理页面生成与访问分配。</p>
         <table>
             <tr>
                 <th>接口</th>
                 <th>方法</th>
+                <th>鉴权</th>
                 <th>说明</th>
             </tr>
             <tr>
-                <td><code>/api/project/render</code></td>
+                <td><code>/project/render</code></td>
                 <td>POST</td>
-                <td>接收表单数据，渲染 HTML 并写入 R2/KV。</td>
+                <td>Auth</td>
+                <td>核心渲染接口。接收 JSON 数据，写入 R2 并同步边缘路由。</td>
             </tr>
             <tr>
-                <td><code>/api/project/check-subdomain</code></td>
+                <td><code>/:subdomain</code></td>
                 <td>GET</td>
-                <td>检查子域名是否已被占用。</td>
+                <td>Admin</td>
+                <td>获取该子域名的原始配置信息（用于后台管理）。</td>
             </tr>
             <tr>
-                <td><code>/api/project/my-listing</code></td>
-                <td>GET</td>
-                <td>(Auth) 列出当前用户拥有的页面。</td>
+                <td><code>/project/config/refresh-blocklist</code></td>
+                <td>POST</td>
+                <td>Admin</td>
+                <td>清除 VPS 内存中的域名黑名单缓存并重新从 KV 加载。</td>
             </tr>
         </table>
 
-        <h2>3. 系统运维 (System Ops)</h2>
+        <h2>3. 静态资产与监控 (Infrastructure)</h2>
         <table>
             <tr>
                 <th>接口</th>
@@ -69,20 +91,25 @@
                 <th>说明</th>
             </tr>
             <tr>
-                <td><code>/api/project/config/refresh-blocklist</code></td>
-                <td>POST</td>
-                <td>(Admin) 强制通知 VPS 刷新内存中的域名黑名单。</td>
+                <td><code>/assets/:type/*</code></td>
+                <td>GET</td>
+                <td>模板静态资源（图片/JS/CSS）分发，支持多版本缓存。</td>
             </tr>
             <tr>
-                <td><code>/api/auth/status</code></td>
+                <td><code>/health</code></td>
                 <td>GET</td>
-                <td>校验当前登录状态。</td>
+                <td>基础健康检查，返回系统时间戳。</td>
+            </tr>
+            <tr>
+                <td><code>/templates.json</code></td>
+                <td>GET</td>
+                <td>静态化的模板列表资源，由 Nginx 直接响应（极低延迟）。</td>
             </tr>
         </table>
 
         <div class="note">
-            <strong>💡 鉴权方式：</strong><br>
-            除了公开的渲染与查重接口，大部分涉及用户资产的 API 均通过 Supabase Session Token 进行鉴权。
+            <strong>🔒 管理员鉴权 (Admin Key)</strong><br>
+            所有标记为 <code>Admin</code> 的接口，必须在 Header 中携带 <code>X-Admin-Key</code>。该 Key 在后端 <code>.env</code> 中配置。
         </div>
 
         <div class="chapter-nav">

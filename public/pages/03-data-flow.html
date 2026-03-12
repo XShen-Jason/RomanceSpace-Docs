@@ -28,19 +28,19 @@
         <div class="flow-step">
             <div class="flow-num">1</div>
             <div class="flow-content">
-                <strong>Supabase (业务真理)</strong>：持久化存储项目配置（subdomain, template_id, raw_data）。这是判断权限的依据。
+                <strong>Supabase (业务真理)</strong>：持久化存储项目配置。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">2</div>
             <div class="flow-content">
-                <strong>R2 (分发真理)</strong>：生成成品 HTML 强行覆盖 <code>pages/{subdomain}/index.html</code>。
+                <strong>R2 (分发真理)</strong>：<strong>0 垃圾覆盖法则</strong>。生成成品 HTML 永远采用同一个路径直接写入覆盖 <code>pages/{subdomain}/index.html</code>。这样既不产生碎片文件占用容量，又能节省 Delete 操作的 API 计费。
             </div>
         </div>
         <div class="flow-step">
             <div class="flow-num">3</div>
             <div class="flow-content">
-                <strong>KV (路由查重)</strong>：<strong>KV 写入脱水优化</strong>。只有当首次创建或模板切换（导致路由逻辑变动）时才写 KV。普通的文字内容修改不会触发 KV 写入，从而保护 1000次/天的有限配额。
+                <strong>KV (路由查重)</strong>：<strong>KV 写入脱水优化</strong>。只有当首次创建或模板切换时才写 KV。
             </div>
         </div>
         <div class="flow-step">

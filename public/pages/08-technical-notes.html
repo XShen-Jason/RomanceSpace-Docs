@@ -13,35 +13,31 @@
         
         <p>RomanceSpace 的稳定性与低成本并非偶然，而是基于一系列深度优化措施。本章总结了平台的四大核心技术优势。</p>
 
-        <h2>优势 1：极致的边缘分发 (Edge Priority)</h2>
+        <h2>优势 1：多层级边缘缓存 (Edge Memoization)</h2>
         <div class="flow-step">
             <div class="flow-num">🚀</div>
             <div class="flow-content">
-                <strong>流量与抗压</strong>：通过 Cloudflare Worker 拦截所有 C 端流量，VPS 只处理少量的 B 端写请求。这使得哪怕有千万级并发流量，VPS 依然可以“岁月静好”。
+                我们在 Worker 内部实现了<strong>全局内存映射 (Memoization)</strong>。对于高频访问的模板元数据，Worker 直接从内存返回，无需重复发起 KV 或 R2 网络请求，响应延迟被压缩至惊人的 1ms 级别。
             </div>
         </div>
 
-        <h2>优势 2：变态级的省钱法 (Zero Cost Strategy)</h2>
-        <p>我们巧妙利用了云厂商的免费额度上限：</p>
+        <h2>优势 2：全自动双轨 Purge 策略</h2>
+        <p>解决了常规 CDN 刷新慢的痛点：</p>
         <ul>
-            <li><strong>R2 存储</strong>：免费 10GB 空间，100w 次/月写入。</li>
-            <li><strong>KV 路由</strong>：充分利用 10w 次/天的免费读取额度，将高价值的域名解析放在边缘。</li>
-            <li><strong>BSR 预览</strong>：由于预览阶段 0 服务器参与，我们节省了 90% 以上的中间计算费。</li>
+            <li><strong>原子级写入</strong>：后端在 R2 完成“0 垃圾覆盖”写入后，立即通过 API 指令刷新 Edge。</li>
+            <li><strong>全球同步</strong>：利用 Cloudflare TTL 优化，确保用户在点击“生成”后的 2 秒内，全网任何节点都能看到最新网页。</li>
         </ul>
 
-        <h2>优势 3：高透明度的实时预览</h2>
+        <h2>优势 3：边缘侧 Zero-Trust 防御</h2>
         <div class="flow-step">
-            <div class="flow-num">✨</div>
+            <div class="flow-num">🛡️</div>
             <div class="flow-content">
-                <strong>BSR 毫秒级防爆</strong>：用户打字即反馈。通过 <code>iframe</code> + <code>srcDoc</code> + <code>&lt;base&gt;</code> 注入，解决了所有相对路径丢失问题，提供了行业顶尖的“所见即所得”体验。
+                <strong>安全响应头注入</strong>：系统强制在边缘注入 <code>X-Frame-Options: SAMEORIGIN</code> 和 <code>X-Content-Type-Options: nosniff</code>。
             </div>
         </div>
-
-        <h2>优势 4：健壮的安全防护</h2>
         <ul>
-            <li><strong>内存级黑名单</strong>：VPS 在启动时仅加载一次 KV 黑名单，后续检测 0 网络开销、0 响应延迟。</li>
-            <li><strong>跨域绝杀</strong>：通过 Nginx 网关中转，前端与后端在物理域名上合一，彻底规避了 CORS 的复杂配置与安全隐患。</li>
-            <li><strong>Worker 边缘防御</strong>：正则阻断、参数守卫、全局 try-catch，四道防线确保系统永不“裸奔”。</li>
+            <li><strong>域名脱火防护</strong>：非法的域名请求在边缘被正则拦截并 302 重定向到主站，甚至不产生任何 R2 读取费用。</li>
+            <li><strong>后端隐匿</strong>：所有内部 API 路径通过 Nginx 物理隔离，黑客无法从前端代码推断出后端服务器的真实资源路径。</li>
         </ul>
 
         <div class="note">

@@ -9,17 +9,90 @@
 <body>
     <div class="handbook-page">
         <div class="badge">Chapter 5</div>
-        <h1>部署圣经：从服务器到边缘</h1>
+        <h1>部署圣经：全栈 VPS 部署指南</h1>
         
-        <p>本章记录了如何从零开始部署 RomanceSpace 的全栈环境，涵盖 VPS、Nginx、Cloudflare 等各个关键环节。</p>
+        <p>本指南教你从零开始，在同一台 VPS 上部署和托管 RomanceSpace 的后端（Node.js）和前端（React），并实现最高性能的“Nginx 动静分离”与“相对路径 0 延迟调用”。</p>
 
-        <h2>1. 后端与前端 (全栈 VPS 动静分离)</h2>
-        <p>我们采用“邻居部署法”，前后端代码在同一 VPS 上放置。通过 Nginx 网关中转，消除跨域风险。</p>
-        
-        <h3>Nginx 极简双向转发配置</h3>
-        <pre><code>server {
+        <h2>1. 阶段一：环境准备</h2>
+        <p>如果你的 VPS 是一台纯净的 Ubuntu 系统，你需要先安装三个核心软件：Node.js, PM2, Nginx。</p>
+        <pre><code># 1. 更新系统并安装 Nginx 和 Git
+sudo apt update
+sudo apt install -y nginx git curl certbot python3-certbot-nginx
+
+# 2. 安装 Node.js (推荐 20.x 长期支持版)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# 3. 安装 PM2 (管理后端进程的神器)
+sudo npm install -g pm2</code></pre>
+
+        <h2>2. 阶段二：部署后端 (Node.js API)</h2>
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+                <strong>克隆代码与安装依赖</strong>：
+                <pre><code>cd /opt
+sudo git clone https://github.com/XShen-Jason/RomanceSpace-Backend.git
+cd RomanceSpace-Backend
+sudo npm install</code></pre>
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+                <strong>配置环境变量</strong>：编辑 <code>.env</code> 文件。注意：后端必须使用 <code>SUPABASE_SERVICE_ROLE_KEY</code> 以跳过 RLS 检查。
+                <pre><code>PORT=3000
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+CF_ACCOUNT_ID=...
+CF_API_TOKEN=...
+CF_KV_NAMESPACE_ID=...
+CF_R2_BUCKET=...</code></pre>
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+                <strong>启动并守护进程</strong>：
+                <pre><code>pm2 start src/app.js --name "romancespace-api"
+pm2 save
+pm2 startup</code></pre>
+            </div>
+        </div>
+
+        <h2>3. 阶段三：部署前端 (React)</h2>
+        <p>让前端和后端在同一个 <code>/opt</code> 目录下做邻居，通过 Nginx 实现纯物理局域网转发。</p>
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+                <strong>从源码构建</strong>：
+                <pre><code>cd /opt
+sudo git clone https://github.com/XShen-Jason/RomanceSpace-Frontend.git
+cd RomanceSpace-Frontend
+sudo npm install</code></pre>
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+                <strong>Auth 注入</strong>：编辑 <code>.env</code> 填入 <code>VITE_SUPABASE_URL</code> 和 <code>VITE_SUPABASE_ANON_KEY</code>，这是前端登录必备。
+            </div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+                <strong>执行构建</strong>：构建成功的资源将生成在 <code>dist/</code>。
+                <pre><code>sudo npm run build</code></pre>
+            </div>
+        </div>
+
+        <h2>4. 阶段四：Nginx 终极网关配置</h2>
+        <p>配置 Nginx 统管大局，做到动静分离、跨域消除、预览直连。</p>
+        <pre><code># /etc/nginx/conf.d/romancespace.conf
+
+server {
     listen 80;
-    server_name www.885201314.xyz;
+    server_name 885201314.xyz www.885201314.xyz;
 
     # 1. 前端 React 静态资源
     location / {
@@ -28,60 +101,51 @@
         try_files $uri $uri/ /index.html;
     }
 
-    # 2. 内网直连转发 API (3000 端口)
+    # 2. 内网转发后端 API (3000 端口)
     location /api/ {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
     }
 
     # 3. 模板预览直连 (BSR 骨架分发)
     location /preview/ {
-        proxy_pass http://127.0.0.1:3000/api/template/preview/;
+        proxy_pass         http://127.0.0.1:3000/api/template/preview/;
+        proxy_set_header   Host $host;
     }
     
-    # 4. 模板静态资产加速
+    # 4. 模板静态资产加速 (^~ 防止正则截获)
     location ^~ /assets/ {
-        proxy_pass http://127.0.0.1:3000;
-        # 缓存配置...
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_set_header   Host $host;
+    }
+
+    # 5. [优化] 模板列表 JSON 静态服务
+    location = /templates.json {
+        alias /opt/cache/templates.json;
+        add_header Content-Type application/json;
+        add_header Access-Control-Allow-Origin *;
     }
 }</code></pre>
 
-        <h2>2. 环境初始化指南</h2>
-        <div class="flow-step">
-            <div class="flow-num">1</div>
-            <div class="flow-content">
-                <strong>基础依赖</strong>：安装 Node.js 20.x, PM2, Nginx, Certbot。
-            </div>
-        </div>
-        <div class="flow-step">
-            <div class="flow-num">2</div>
-            <div class="flow-content">
-                <strong>后端启动</strong>：克隆项目 -> 填入 <code>.env</code> (含 Supabase Service Key) -> <code>pm2 start src/app.js</code>。
-            </div>
-        </div>
-        <div class="flow-step">
-            <div class="flow-num">3</div>
-            <div class="flow-content">
-                <strong>前端构建</strong>：克隆项目 -> 设置 <code>.env</code> 指向 Supabase 公开 Key -> <code>npm run build</code>。
-            </div>
-        </div>
-
-        <h2>3. 极速更新工作流</h2>
-        <p>以后每次修改代码后，只需在 VPS 执行：</p>
+        <h2>5. 阶段五 & 六：DNS设置、SSL与极速更新</h2>
+        <h3>Cloudflare DNS 设置</h3>
+        <p>在 Cloudflare 面板 -> DNS 设置里，将以下记录设为 <strong>灰色云朵 (DNS Only)</strong>：</p>
         <ul>
-            <li><strong>后端</strong>：<code>git pull</code> + <code>pm2 restart romancespace-api</code>。</li>
-            <li><strong>前端</strong>：<code>git pull</code> + <code>npm run build</code> (Nginx 会自动读取最新的 dist，0 重启)。</li>
+            <li><code>A www</code> 指向 <code>VPS_IP</code></li>
+            <li><code>A @ (root)</code> 指向 <code>VPS_IP</code></li>
+            <li><code>A api</code> 指向 <code>VPS_IP</code></li>
         </ul>
 
-        <h2>3. 日常维护与“防爆”指南</h2>
-        <p>为了防止 2h2g VPS 被日志或垃圾文件填满，请务必执行以下运维操作：</p>
-        
-        <div class="flow-step">
-            <div class="flow-num">!</div>
-            <div class="flow-content">
-                <strong>Logrotate 内存卫士</strong>：配置日志自动切割，防止 <code>pm2</code> 日志文件爆涨。
-            </div>
-        </div>
+        <h3>获取 SSL 证书 (小绿锁)</h3>
+        <pre><code>sudo certbot --nginx -d 885201314.xyz -d www.885201314.xyz -d api.885201314.xyz</code></pre>
+
+        <h3>日后更新指南</h3>
+        <p>代码 Push 后，在 VPS 执行：</p>
+        <ul>
+            <li><strong>后端更新</strong>：<code>cd /opt/RomanceSpace-Backend && git pull && pm2 restart romancespace-api</code></li>
+            <li><strong>前端更新</strong>：<code>cd /opt/RomanceSpace-Frontend && git pull && npm run build</code> (Nginx 自动感知，无需重启)</li>
+        </ul>
 
         <div class="chapter-nav">
             <a href="04-collaboration.html" class="nav-link">

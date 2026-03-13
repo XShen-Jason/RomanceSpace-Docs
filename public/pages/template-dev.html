@@ -110,49 +110,151 @@
         <strong>🤖 AI 辅助开发？</strong> 我们专门准备了 <a href="/template-ai-standard.md" style="color: #2563eb; text-decoration: underline; font-weight: bold;">《AI 专用模板开发规范》</a>，包含一键复制的 Prompts！
     </div>
 
-    <h2>一、 标准化的结构拆解 (动手干)</h2>
+    <h2>一、 标准化的结构拆解</h2>
 
     <div class="flow-step">
         <div class="flow-num">1</div>
         <div>
-            <strong>搭设你的小作坊</strong><br>
-            在仓库的根目录建一个新文件夹（比如 <code>my_card</code>），保证它的结构非常简单：
+            <strong>规范的目录结构</strong><br>
+            在 <code>RomanceSpace-Templates/src</code> 下为你的模板创建一个独立的文件夹。建议遵循以下结构：
         </div>
     </div>
 
     <div class="file-tree">
-        templates/my_card/<br>
-        ├── index.html —— (必填) 你写的静态网页本体<br>
-        ├── config.json —— (必填) 极其重要的替换词典<br>
-        ├── style.css —— (可选) 让网民惊叫的 CSS 极品特效<br>
-        └── img/bg.jpg —— (可选) 你引用的各种小素材
+        src/[template_id]/<br>
+        ├── index.html —— (必填) 静态网页本体，包含 {{变量}}<br>
+        ├── config.json —— (必填) 模板配置文件，定义 UI 表单<br>
+        ├── style.css —— (建议) 建议独立出 CSS 文件简化 HTML<br>
+        └── assets/ —— (建议) 放置图片、音频等静态素材
+    </div>
+
+    <div class="note">
+        <strong>🚩 命名规范：</strong><br>
+        <code>template_id</code> 必须是小写字母、数字或下划线，且在仓库内全局唯一。这也就是该模板的“英文名”。
     </div>
 
     <div class="flow-step">
         <div class="flow-num">2</div>
         <div>
-            <strong>打上灵魂替换签</strong><br>
-            在你写好的 <code>index.html</code> 里，不要把字写死。把你想让用户自己填的地方，用极其明显的双大括号 <code>{{}}</code> 圈起来：
+            <strong>打上灵魂替换签 (Interpolation)</strong><br>
+            在 <code>index.html</code> 中，使用双大括号 <code>{{id}}</code> 标记动态内容。系统会在渲染时自动扫描并替换这些占位符。
         </div>
     </div>
-    <pre><code>&lt;h1&gt;{{title}}&lt;/h1&gt;
-&lt;p&gt;这封信是 {{author}} 写给你的。&lt;/p&gt;</code></pre>
+    <pre><code>&lt;!-- 示例：index.html --&gt;
+&lt;h1&gt;{{title}}&lt;/h1&gt;
+&lt;p&gt;致 {{receiver}}：&lt;/p&gt;
+&lt;div class="content"&gt;{{message}}&lt;/div&gt;</code></pre>
 
     <div class="flow-step">
         <div class="flow-num">3</div>
         <div>
-            <strong>撰写 Config.json 说明书</strong><br>
-            新建 <code>config.json</code>，这个文件是给咱们的前端 React 和后端 VPS 读的。告诉它们这个模板需要收集什么词：
+            <strong>详解 Config.json 说明书</strong><br>
+            <code>config.json</code> 决定了前端 Builder 页面会生成什么样的表单。
         </div>
     </div>
-    <pre><code>{
-  "name": "my_card",
+
+    <h3>字段详细说明</h3>
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+        <thead>
+            <tr style="background: #f1f5f9; text-align: left;">
+                <th style="padding: 10px; border: 1px solid #e2e8f0;">字段名</th>
+                <th style="padding: 10px; border: 1px solid #e2e8f0;">必填</th>
+                <th style="padding: 10px; border: 1px solid #e2e8f0;">类型</th>
+                <th style="padding: 10px; border: 1px solid #e2e8f0;">描述</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>name</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">是</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">String</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">模板唯一标识，需与文件夹名一致。</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>fields</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">是</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">Array</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">配置项列表。</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>fields[].id</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">是</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">String</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">对应 HTML 中的 <code>{{id}}</code>。</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>fields[].label</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">是</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">String</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">前端表单显示的名称（中文）。</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>fields[].type</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">否</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">Enum</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>text</code> (默认) 或 <code>textarea</code>。</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>fields[].default</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">否</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">String</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">表单默认预填的内容。</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>fields[].placeholder</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">否</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">String</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">输入框为空时的提示语。</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>static</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">否</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">Boolean</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">是否为静态模板。若为 true，则不渲染 fields。</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>一键复制：标准 <code>config.json</code> 样板</h3>
+    <pre id="config-boilerplate" style="cursor: pointer;" onclick="copyCode('config-boilerplate')"><code>{
+  "name": "my_romantic_template",
+  "version": "1.0.0",
   "static": false,
   "fields": [
-    { "id": "title", "label": "标题", "type": "text", "default": "我的标题" },
-    { "id": "author", "label": "署名", "type": "text", "default": "神秘人" }
+    {
+      "id": "title",
+      "label": "网页标题",
+      "placeholder": "例如：致最亲爱的你",
+      "default": "告白气球",
+      "type": "text"
+    },
+    {
+      "id": "message",
+      "label": "浪漫寄语",
+      "placeholder": "想对 TA 说的话...",
+      "default": "我想和你虚度时光。",
+      "type": "textarea"
+    }
   ]
 }</code></pre>
+
+
+    <h3>一键复制：标准 <code>index.html</code> 样板</h3>
+    <pre id="html-boilerplate" style="cursor: pointer;" onclick="copyCode('html-boilerplate')"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;title&gt;{{title}}&lt;/title&gt;
+    &lt;link rel="stylesheet" href="style.css"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class="container"&gt;
+        &lt;h1&gt;{{title}}&lt;/h1&gt;
+        &lt;p&gt;{{message}}&lt;/p&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
 
     <h2>二、 推向线上 (两套部署方案)</h2>
 
@@ -209,6 +311,17 @@ git push</code></pre>
     </div>
 
     <script>
+        function copyCode(id) {
+            const code = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const el = document.getElementById(id);
+                const originalBg = el.style.background;
+                el.style.background = "#334155";
+                setTimeout(() => { el.style.background = originalBg; }, 200);
+                alert('代码已复制到剪贴板！');
+            });
+        }
+
         function copyPrompt() {
             const text = document.getElementById('prompt-text').innerText;
             navigator.clipboard.writeText(text).then(() => {

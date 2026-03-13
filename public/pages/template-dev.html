@@ -256,7 +256,27 @@
 &lt;/body&gt;
 &lt;/html&gt;</code></pre>
 
-    <h2>二、 推向线上 (两套部署方案)</h2>
+    <h2>二、 移动端自适应设计规范 (Mobile-First)</h2>
+    <div class="note">
+        由于 95% 的用户通过微信/链接打开页面，模板<strong>必须</strong>完美适配手机屏幕。
+    </div>
+    <ul>
+        <li><strong>强制响应式</strong>：必须包含 <code>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</code>。</li>
+        <li><strong>主题颜色</strong>：建议包含 <code>&lt;meta name="theme-color" content="#主题色码"&gt;</code>，让移动浏览器地址栏融入网页。</li>
+        <li><strong>盒模型一致性</strong>：全局必须包含 <code>* { box-sizing: border-box; }</code>，防止内边距破坏布局。</li>
+        <li><strong>图片自适应</strong>：全局包含 <code>img { max-width: 100%; height: auto; }</code>，防止原图太大导致爆版。</li>
+        <li><strong>排版单位</strong>：推荐使用 <code>rem</code> 或 <code>vw</code> 替代固定 <code>px</code>，正文字号建议 <code>16px</code>。</li>
+        <li><strong>资源优化</strong>：背景图建议使用 <code>background-size: cover;</code>，并确保页面在 375px - 414px 宽度下不溢出（没有横向滚动条）。</li>
+    </ul>
+
+    <h2>三、 系统级自动注入功能</h2>
+    <p>为了提升分享转化，系统会自动在页面最底部（Overlay 顶层）注入一个<strong>固定位置</strong>的“邀请链接”按钮。</p>
+    <ul>
+        <li><strong>开关控制：：</strong> 会员用户（Free 以上）可以在 Builder 页面手动点击开关隐藏此按钮。</li>
+        <li><strong>兼容性：：</strong> 请确保你的页面最底部核心内容不要被挡住，或者为底部留出约 60px 的安全边距。</li>
+    </ul>
+
+    <h2>四、 推向线上 (两套部署方案)</h2>
 
     <h3>方案 A：可视化后台一键上传（推荐运营人员首选）</h3>
     <p>系统在前端主站为您提供了一个极简的隐藏管理后台，完全脱离枯燥的命令行代码。</p>
@@ -291,6 +311,15 @@ git add .
 git commit -m "feat: 新增了一个表白特效网页"
 git push</code></pre>
     <p>就是这么丝滑！根据您的团队人员构成，随意选择最合适的一套方案即可。</p>
+
+    <h2>五、 版本控制与快照机制 (Snapshot Model)</h2>
+    <div class="note">
+        <strong>⚠️ 重要：理解“快照”渲染逻辑</strong><br>
+        1. <strong>模板更新</strong>：当你通过 GitHub 推送新代码时，系统会生成一个新的模板版本（Version），但<strong>已经生成的存量用户网页不会自动变样</strong>。<br>
+        2. <strong>用户更新</strong>：如果用户想要应用新版模板的设计（或者修改自己的留言内容），必须回到 <strong>Builder (制作页)</strong> 重新点击一次“提交/保存”。<br>
+        3. <strong>渲染原理</strong>：后端在接收到提交请求时，会抓取模板库中<strong>当前的最新版</strong> HTML，注入用户数据，最后生成一份全新的静态 HTML 覆盖旧的 R2 文件。
+    </div>
+    <p>这种“快照式”的设计能保证存量网页的极速访问（直接读取 R2 静态文件，无需 CPU 计算）和极高的稳定性（模板库挂了，已经生成的网页照样能开）。</p>
 
     <hr style="margin: 60px 0; border: none; border-top: 1px solid #eee;">
 

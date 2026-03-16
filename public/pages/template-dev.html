@@ -218,6 +218,12 @@
                 <td style="padding: 10px; border: 1px solid #e2e8f0;">Boolean</td>
                 <td style="padding: 10px; border: 1px solid #e2e8f0;">是否为静态模板。若为 true，则不渲染 fields。</td>
             </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>tier</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">否</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">String</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">定价等级。<code>free</code> (免费) 或 <code>pro</code> (默认，收费)。</td>
+            </tr>
         </tbody>
     </table>
 
@@ -225,6 +231,7 @@
     <pre id="config-boilerplate" style="cursor: pointer;" onclick="copyCode('config-boilerplate')"><code>{
   "name": "my_romantic_template",
   "title": "我的惊喜模板",
+  "tier": "pro",
   "version": "1.0.0",
   "static": false,
   "fields": [

@@ -222,7 +222,13 @@
                 <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>tier</code></td>
                 <td style="padding: 10px; border: 1px solid #e2e8f0;">否</td>
                 <td style="padding: 10px; border: 1px solid #e2e8f0;">String</td>
-                <td style="padding: 10px; border: 1px solid #e2e8f0;">定价等级。<code>free</code> (免费) 或 <code>pro</code> (默认，收费)。</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">定价等级。<code>free</code> (免费) 或 <code>pro</code> (会员专享)。</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;"><code>price</code></td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">否</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">Number</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">单独购买价格（默认 0）。若设置大于 0，则视为可单独购买。</td>
             </tr>
         </tbody>
     </table>
@@ -232,6 +238,7 @@
   "name": "my_romantic_template",
   "title": "我的惊喜模板",
   "tier": "pro",
+  "price": 9.9,
   "version": "1.0.0",
   "static": false,
   "fields": [

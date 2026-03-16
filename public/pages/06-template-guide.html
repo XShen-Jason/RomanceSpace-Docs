@@ -86,9 +86,10 @@
              onclick="copyPrompt()" onmouseover="this.style.background='#fff0f6'" onmouseout="this.style.background='#fdf2f7'">
             <p id="prompt-content" style="font-family: 'Fira Code', monospace; font-size: 13px; color: #d6336c; white-space: pre-wrap;">请为“浪漫空间” (RomanceSpace) 平台生成一套完整的网页模板代码：
 1. 生成 index.html：必须是响应式设计 (Mobile-First)，适配手机与电脑。使用 {{ variable_id }} 注入动态内容。
-2. 配套生成 config.json：遵循方案 {"name": "模板ID", "fields": [{"id": "...", "label": "...", "default": "...", "type": "text|textarea"}]}。
-3. 设计风格：要求极度美满、浪漫、Premium感。使用毛玻璃特效 (Glassmorphism)、平滑渐变和细腻的 CSS 动画。
-4. 兼容性：严禁使用外部 JS 框架，允许使用原生 JavaScript。必须包含 Viewport 元标签防止移动端缩放故障。</p>
+2. 配套生成 config.json：必须包含 "name" (全小写下划线ID) 和 "title" (中文显示名称)。遵循格式：{"name": "love_letter", "title": "浪漫情书", "fields": [{"id": "...", "label": "...", "default": "...", "type": "text|textarea"}]}。
+3. 命名规范：所有 ID 和目录名必须仅使用小写字母和下划线。
+4. 设计风格：要求极度美满、浪漫、Premium感。使用毛玻璃特效 (Glassmorphism)、平滑渐变和细腻的 CSS 动画。
+5. 兼容性：严禁使用外部 JS 框架，必须包含 Viewport 元标签防止移动端缩放故障。</p>
             <div style="text-align: right; font-size: 11px; font-weight: bold; color: #d6336c; margin-top: 10px;">(点击卡片一键复制)</div>
         </div>
 

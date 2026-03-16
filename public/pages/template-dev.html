@@ -342,7 +342,8 @@ git push</code></pre>
    - 风格：视觉表现力极强，要求极致浪漫美观，设计精美。
    - 严禁使用外部重型 JS 框架。
 2. 生成一个 `config.json`，遵循以下规范：
-   - `{"name": "模板ID", "fields": [{"id": "...", "label": "...", "default": "...", "type": "text|textarea"}]}`。
+   - 必须包含 `"name"` (仅限小写字母+下划线) 和 `"title"` (中文名称)。
+   - 格式：`{"name": "my_template", "title": "我的浪漫模板", "fields": [{"id": "...", "label": "...", "default": "...", "type": "text|textarea"}]}`。
 3. 请提供完整的 HTML 以及 config.json 的内容。</p>
     </div>
 

@@ -1,6 +1,6 @@
-# RomanceSpace 全栈 VPS 部署指南（终极新手版）
+# MoodSpace 全栈 VPS 部署指南（终极新手版）
 
-本指南从零开始，教你在同一台 VPS 上部署和托管 **RomanceSpace** 的后端（Node.js）和前端（React），并实现最高性能的“Nginx 动静分离”和“相对路径 0 延迟调用”。
+本指南从零开始，教你在同一台 VPS 上部署和托管 **MoodSpace** 的后端（Node.js）和前端（React），并实现最高性能的“Nginx 动静分离”和“相对路径 0 延迟调用”。
 
 ---
 
@@ -24,13 +24,13 @@ sudo npm install -g pm2
 
 ## 阶段二：部署后端 (Node.js API)
 
-我们要把后端代码放在 `/opt/RomanceSpace-Backend`。
+我们要把后端代码放在 `/opt/MoodSpace-Backend`。
 
 ### 1. 克隆代码与安装依赖
 ```bash
 cd /opt
-sudo git clone https://github.com/XShen-Jason/RomanceSpace-Backend.git
-cd RomanceSpace-Backend
+sudo git clone https://github.com/XShen-Jason/MoodSpace-Backend.git
+cd MoodSpace-Backend
 
 # 安装后端依赖
 sudo npm install
@@ -54,14 +54,14 @@ nano .env
 
 ### 3. 启动并守护后端进程
 ```bash
-# 启动应用，命名为 romancespace-api
-pm2 start src/app.js --name "romancespace-api"
+# 启动应用，命名为 MoodSpace-api
+pm2 start src/app.js --name "MoodSpace-api"
 
 # 设置开机自启
 pm2 save
 pm2 startup
 ```
-此时，运行 `pm2 list` 应该能看到 `romancespace-api` 是 **online** 状态。后端已在 `:3000` 端口监听。
+此时，运行 `pm2 list` 应该能看到 `MoodSpace-api` 是 **online** 状态。后端已在 `:3000` 端口监听。
 
 ---
 
@@ -72,8 +72,8 @@ pm2 startup
 ### 1. 克隆代码与安装依赖
 ```bash
 cd /opt
-sudo git clone https://github.com/XShen-Jason/RomanceSpace-Frontend.git
-cd RomanceSpace-Frontend
+sudo git clone https://github.com/XShen-Jason/MoodSpace-Frontend.git
+cd MoodSpace-Frontend
 
 # 安装前端依赖
 sudo npm install
@@ -93,7 +93,7 @@ nano .env
 ```bash
 sudo npm run build
 ```
-打包成功后，静态文件会安静地躺在 `/opt/RomanceSpace-Frontend/dist` 里。
+打包成功后，静态文件会安静地躺在 `/opt/MoodSpace-Frontend/dist` 里。
 
 ---
 
@@ -104,12 +104,12 @@ sudo npm run build
 2. 放在 `dist/` 里的前端静态网页文件
 
 我们要配置 Nginx 统管大局，做到：
-- 收发 `www.885201314.xyz` 流量：发网页。
-- 收发 `www.885201314.xyz/api/...` 请求：转发给 3000 端口（这解决了跨域，而且省去 DNS 查 IP 的时间）。
-- 收发 `api.885201314.xyz` 流量：转发给 3000 端口（为了兼容旧调用，或者其他直接走 API 的脚本）。
+- 收发 `www.moodspace.xyz` 流量：发网页。
+- 收发 `www.moodspace.xyz/api/...` 请求：转发给 3000 端口（这解决了跨域，而且省去 DNS 查 IP 的时间）。
+- 收发 `api.moodspace.xyz` 流量：转发给 3000 端口（为了兼容旧调用，或者其他直接走 API 的脚本）。
 
 ```bash
-sudo nano /etc/nginx/conf.d/romancespace.conf
+sudo nano /etc/nginx/conf.d/MoodSpace.conf
 ```
 把里面内容**全部删除**，严格粘贴以下内容：
 
@@ -117,11 +117,11 @@ sudo nano /etc/nginx/conf.d/romancespace.conf
 # 1. 前端主站与 API 同域转发网关
 server {
     listen 80;
-    server_name 885201314.xyz www.885201314.xyz;
+    server_name moodspace.xyz www.moodspace.xyz;
 
     # 静态文件响应 (神速)
     location / {
-        root /opt/RomanceSpace-Frontend/dist;
+        root /opt/MoodSpace-Frontend/dist;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
@@ -143,10 +143,18 @@ server {
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
-    
-    # 模板静态资产（CSS/JS/图片）由后端从 R2 读取并服务
-    # 关键：必须使用 ^~ 修饰符，防止请求被下方的 ~* 正则块截获
-    location ^~ /assets/ {
+    # 模板静态资产与前端捆绑文件的智能动静分离：
+    # 先在前端 dist/assets/ 找，找不到再去问后端要（解决 /assets/ 目录名冲突）
+    location /assets/ {
+        root /opt/MoodSpace-Frontend/dist;
+        try_files $uri @backend_assets;
+        
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 如果前端压缩包里没这个代码，说明是渲染引擎请求的模板素材，转交 Node.js
+    location @backend_assets {
         proxy_pass         http://127.0.0.1:3000;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
@@ -161,20 +169,12 @@ server {
         add_header Access-Control-Allow-Origin *;
         add_header Cache-Control "public, max-age=60";
     }
-
-    
-    # 静态资源长期硬缓存（前端 React bundle JS/CSS）
-    location ~* \.(js|css|png|jpg|svg|woff2)$ {
-        root /opt/RomanceSpace-Frontend/dist;
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-    }
 }
 
 # 2. 独立 API 域名转发 (兼容层)
 server {
     listen 80;
-    server_name api.885201314.xyz;
+    server_name api.moodspace.xyz;
 
     location / {
         proxy_pass         http://127.0.0.1:3000;
@@ -195,7 +195,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 # 获取正式 HTTPS 证书
-sudo certbot --nginx -d 885201314.xyz -d www.885201314.xyz -d api.885201314.xyz
+sudo certbot --nginx -d moodspace.xyz -d www.moodspace.xyz -d api.moodspace.xyz
 ```
 *(如果提示让你选择，选 `1: Attempt to reinstall this existing certificate`)*
 
@@ -204,9 +204,15 @@ sudo certbot --nginx -d 885201314.xyz -d www.885201314.xyz -d api.885201314.xyz
 ## 阶段五：Cloudflare DNS 收尾
 
 在 Cloudflare 面板 -> DNS 设置里：
-- `A` 记录：`www` 指向 `你的VPS_IP` （**必须灰色云朵，DNS Only**）
-- `A` 记录：`@` (885201314.xyz) 指向 `你的VPS_IP` （**必须灰色云朵，DNS Only**）
-- `A` 记录：`api` 指向 `你的VPS_IP` （**必须灰色云朵，DNS Only**）
+
+1. **初步配置阶段（给 Nginx 申请证书时）**：
+   - `A` 记录：`www` 指向 `你的VPS_IP` （**必须灰色云朵，DNS Only**）
+   - `A` 记录：`@` (代表 moodspace.xyz) 指向 `你的VPS_IP` （**必须灰色云朵，DNS Only**）
+   - `A` 记录：`api` 指向 `你的VPS_IP` （**必须灰色云朵，DNS Only**）
+
+2. **证书配置成功且能访问后（🚨 极其重要 🚨）**：
+   - **必须去把上面三条记录的灰色小云朵全部点亮，变成橙色（Proxied）！**
+   - 只有开启橙色云朵，你的前端静态文件才能享受 CF 全球 CDN 节点秒速下发，隐藏 VPS 真实 IP 并抵抗攻击。如果你忘了点亮橙云，你的网站加载将会绕过所有缓存，速度非常堪忧！
 
 ---
 
@@ -216,15 +222,15 @@ sudo certbot --nginx -d 885201314.xyz -d www.885201314.xyz -d api.885201314.xyz
 
 ### 💡 更新后端：
 ```bash
-cd /opt/RomanceSpace-Backend
+cd /opt/MoodSpace-Backend
 git pull origin main
 npm install
-pm2 restart romancespace-api
+pm2 restart MoodSpace-api
 ```
 
 ### 💡 更新前端：
 ```bash
-cd /opt/RomanceSpace-Frontend
+cd /opt/MoodSpace-Frontend
 git pull origin main
 npm install
 npm run build
